@@ -1,3 +1,5 @@
 __all__ = [
-    "lexer"
+    "ast",
+    "lexer",
+    "parser"
 ]

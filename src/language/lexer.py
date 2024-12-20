@@ -7,6 +7,7 @@ TYPES = [
     "identifier",  # Name of a function, relation, or bound/free variable
     "infix_rel",   # Infix relation (ie, equality "=")
     "bracket",     # Open or close bracket
+    "comma",       # Separator between function params
 ]
 
 
@@ -37,8 +38,6 @@ class Lexer:
             # Text stream shouldn't be empty, fine to throw exception
             self.cur_text = next(text_stream)
         self.idx = 0
-        self.token_type = ""
-        self.token_val = ""
 
     def __iter__(self):
         return self
@@ -51,7 +50,7 @@ class Lexer:
             self.idx = 0
         
     # Currently does not support identifier names split across multiple stream elements
-    def __next__(self):
+    def __next__(self) -> Token:
         # Find next non-whitespace character
         self.get_text_from_stream()
         cur_char = self.cur_text[self.idx]
@@ -64,27 +63,33 @@ class Lexer:
         if cur_char in ["(", ")"]:
             self.idx += 1
             return Token("bracket", cur_char)
+        elif cur_char == ",":
+            self.idx += 1
+            return Token("comma", ",")
         elif cur_char in ["!", "&", "|"]:
             self.idx += 1
             return Token("bracket", cur_char)
         elif cur_char == "-":
-            if self.cur_text[self.idx + 1] == ">":
+            next_char = self.cur_text[self.idx + 1]
+            if next_char == ">":
                 self.idx += 2
                 return Token("operator", "->")
             else:
-                raise FOLSyntaxException
+                raise FOLSyntaxException(f"Syntax error at symbol: -{next_char}")
         elif cur_char == "<":
-            if self.cur_text[self.idx + 1 : self.idx + 3] == "->":
+            next_str = self.cur_text[self.idx + 1 : self.idx + 3]
+            if next_str == "->":
                 self.idx += 3
                 return Token("operator", "<->")
             else:
-                raise FOLSyntaxException
+                raise FOLSyntaxException(f"Syntax error at symbol: <{next_str}")
         elif cur_char == "=":
             return Token("infix_rel", "=")
         elif cur_char.isalnum():
-            tmp_idx = self.idx + 1
-            while tmp_idx < len(self.cur_text) and self.cur_text[tmp_idx].isalnum():
-                tmp_idx += 1
-            return Token("identifier", self.cur_text[self.idx : tmp_idx])
+            tmp_idx = self.idx
+            self.idx += 1
+            while self.idx < len(self.cur_text) and self.cur_text[self.idx].isalnum():
+                self.idx += 1
+            return Token("identifier", self.cur_text[tmp_idx : self.idx])
         else:
-            raise FOLSyntaxException
+            raise FOLSyntaxException(f"Syntax error at char: {cur_char}")
