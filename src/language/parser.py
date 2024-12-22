@@ -25,11 +25,13 @@ OP_PRECEDENCE = {
 }
 
 
-def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False) -> Formula:
+def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False, top_level_paren = False) -> Formula:
     """
     Parse a formula.
     Pass in the parent operator (logical connective) to parse according to precedence,
-    and whether this expression is parenthesized.
+    and whether this expression is parenthesized. If this expression is parenthesized,
+    we keep track of whether it is a "top-level" parenthesized expression, in which case
+    we clear the closing bracket from the token stream.
     """
     left_form = parseOperand(lexer)
     # Keep parsing binary connectives in a left-associative way until we reach end of stream or
@@ -42,7 +44,8 @@ def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False) -> Formula
         match tok:
             case Token("bracket", ")"):
                 if parenthesized:
-                    next(lexer)  # Clear bracket from token stream
+                    if top_level_paren:
+                        next(lexer)  # Clear bracket from token stream
                     return left_form
                 else:
                     raise FOLSyntaxException(f"Unexpected closing bracket while parsing formula")
@@ -52,7 +55,7 @@ def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False) -> Formula
             case _:
                 raise FOLSyntaxException(f"Expected an operator, instead got {tok.type}: {tok.val}")
         op = next(lexer)
-        right_form = parseFormula(op.val, lexer, parenthesized)
+        right_form = parseFormula(op.val, lexer, parenthesized, False)  # Right-hand operands are not top-level paren expressions
         left_form = BinaryConnective(op.val, left_form, right_form)
 
 
@@ -62,7 +65,7 @@ def parseOperand(lexer: Lexer) -> Formula:
     match tok:
         case Token("bracket", "("):
             # Parse a parenthesized formula expression
-            return parseFormula("begin", lexer, True)
+            return parseFormula("begin", lexer, True, True)
         case Token("identifier", name):
             # Expect a relation
             return parseRelation(name, lexer)
