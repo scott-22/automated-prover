@@ -1,3 +1,5 @@
+"""Lex a string stream into a stream of tokens representing FOL"""
+
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -5,15 +7,14 @@ from typing import Iterator
 TYPES = [
     "operator",    # Logical operator
     "identifier",  # Name of a function, relation, or bound/free variable
-    "infix_rel",   # Infix relation (ie, equality "=")
     "bracket",     # Open or close bracket
     "comma",       # Separator between function params
 ]
 
 
-# Tokens to represent FOL
 @dataclass
 class Token:
+    """Tokens to represent FOL"""
     type: str
     val: str
 
@@ -21,14 +22,15 @@ class Token:
         assert self.type in TYPES
 
 
-# Exception class representing syntax errors
 class FOLSyntaxException(Exception):
-    pass
+    """Exception class representing syntax errors"""
 
 
-# Lexer to parse FOL
-# Pass in a stream of text and it will return a stream of tokens
-class Lexer:
+class LexerStream:
+    """
+    Lexer stream implementation to parse FOL.
+    Pass in a stream of text and it will return a stream of tokens
+    """
     def __init__(self, text_stream: Iterator[str] | str):
         if isinstance(text_stream, str):
             self.text_stream = None
@@ -68,28 +70,56 @@ class Lexer:
             return Token("comma", ",")
         elif cur_char in ["!", "&", "|"]:
             self.idx += 1
-            return Token("bracket", cur_char)
+            return Token("operator", cur_char)
         elif cur_char == "-":
             next_char = self.cur_text[self.idx + 1]
             if next_char == ">":
                 self.idx += 2
                 return Token("operator", "->")
             else:
-                raise FOLSyntaxException(f"Syntax error at symbol: -{next_char}")
+                raise FOLSyntaxException(f"Unrecognized symbol: -{next_char}")
         elif cur_char == "<":
             next_str = self.cur_text[self.idx + 1 : self.idx + 3]
             if next_str == "->":
                 self.idx += 3
                 return Token("operator", "<->")
             else:
-                raise FOLSyntaxException(f"Syntax error at symbol: <{next_str}")
-        elif cur_char == "=":
-            return Token("infix_rel", "=")
+                raise FOLSyntaxException(f"Unrecognized symbol: <{next_str}")
         elif cur_char.isalnum():
             tmp_idx = self.idx
             self.idx += 1
             while self.idx < len(self.cur_text) and self.cur_text[self.idx].isalnum():
                 self.idx += 1
-            return Token("identifier", self.cur_text[tmp_idx : self.idx])
+            ident_str = self.cur_text[tmp_idx : self.idx]
+            if ident_str in ["forall", "exists"]:
+                return Token("operator", ident_str)
+            return Token("identifier", ident_str)
         else:
-            raise FOLSyntaxException(f"Syntax error at char: {cur_char}")
+            raise FOLSyntaxException(f"Unrecognized symbol: {cur_char}")
+
+
+
+class Lexer:
+    """
+    Tokenize a string (or stream of strings) into a stream of tokens.
+    Wraps the LexerStream to allow peeking of tokens
+    """
+    def __init__(self, text_stream: Iterator[str] | str):
+        self.lexer = LexerStream(text_stream)
+        self.token_stack: list[Token] = []
+    
+    def __iter__(self):
+        return self
+    
+    def __next__(self) -> Token:
+        if len(self.token_stack) > 0:
+            return self.token_stack.pop()
+        return next(self.lexer)
+    
+    def put_back(self, tok: Token):
+        self.token_stack.append(tok)
+    
+    def peek(self):
+        tok = self.__next__()
+        self.put_back(tok)
+        return tok
