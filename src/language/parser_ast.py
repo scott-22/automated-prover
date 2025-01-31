@@ -53,12 +53,6 @@ class Relation(Formula):
 
 
 @dataclass
-class Operator(Formula):
-    """A logical operator (quantifier or connective)"""
-    pass
-
-
-@dataclass
 class Quantifier(Formula):
     """A quantifier (has a bound variable and a formula)"""
     var: Variable
@@ -76,6 +70,3 @@ class BinaryConnective(Formula):
     """A binary connective (and, or, implies, etc)"""
     left: Formula
     right: Formula
-
-
-type ASTNode = Term | Formula
