@@ -1,25 +1,46 @@
 """Lex a string stream into a stream of tokens representing FOL"""
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Iterator
 
+
 # Types of tokens representing basic FOL language
-TYPES = [
-    "operator",    # Logical operator
-    "identifier",  # Name of a function, relation, or bound/free variable
-    "bracket",     # Open or close bracket
-    "comma",       # Separator between function params
-]
+class TokenType(StrEnum):
+    OPERATOR = "operator"      # Logical operator
+    IDENTIFIER = "identifier"  # Name of a function, relation, or bound/free variable
+    BRACKET = "bracket"        # Open or close bracket
+    COMMA = "comma"            # Separator between function params
+
+    def __repr__(self):
+        return f"'{self.value}'"
+
+
+# Operators supported by FOL language
+class Operator(StrEnum):
+    NOT = "!"
+    FORALL = "forall"
+    EXISTS = "exists"
+    AND = "&"
+    OR = "|"
+    IMPLIES = "->"
+    IFF = "<->"
+    DUMMY = "begin"  # Dummy operator that denotes the beginning of a formula
+
+    def __repr__(self):
+        return f"'{self.value}'"
 
 
 @dataclass
 class Token:
     """Tokens to represent FOL"""
-    type: str
+    type: TokenType
     val: str
 
     def __post_init__(self):
-        assert self.type in TYPES
+        assert self.type in TokenType
+        if self.type == TokenType.OPERATOR:
+            assert self.val in Operator
 
 
 class FOLSyntaxException(Exception):
@@ -64,25 +85,25 @@ class LexerStream:
         # Return correct token type
         if cur_char in ["(", ")"]:
             self.idx += 1
-            return Token("bracket", cur_char)
+            return Token(TokenType.BRACKET, cur_char)
         elif cur_char == ",":
             self.idx += 1
-            return Token("comma", ",")
+            return Token(TokenType.COMMA, ",")
         elif cur_char in ["!", "&", "|"]:
             self.idx += 1
-            return Token("operator", cur_char)
+            return Token(TokenType.OPERATOR, Operator(cur_char))
         elif cur_char == "-":
             next_char = self.cur_text[self.idx + 1]
             if next_char == ">":
                 self.idx += 2
-                return Token("operator", "->")
+                return Token(TokenType.OPERATOR, Operator.IMPLIES)
             else:
                 raise FOLSyntaxException(f"Unrecognized symbol: -{next_char}")
         elif cur_char == "<":
             next_str = self.cur_text[self.idx + 1 : self.idx + 3]
             if next_str == "->":
                 self.idx += 3
-                return Token("operator", "<->")
+                return Token(TokenType.OPERATOR, Operator.IFF)
             else:
                 raise FOLSyntaxException(f"Unrecognized symbol: <{next_str}")
         elif cur_char.isalnum():
@@ -92,11 +113,10 @@ class LexerStream:
                 self.idx += 1
             ident_str = self.cur_text[tmp_idx : self.idx]
             if ident_str in ["forall", "exists"]:
-                return Token("operator", ident_str)
-            return Token("identifier", ident_str)
+                return Token(TokenType.OPERATOR, Operator(ident_str))
+            return Token(TokenType.IDENTIFIER, ident_str)
         else:
             raise FOLSyntaxException(f"Unrecognized symbol: {cur_char}")
-
 
 
 class Lexer:

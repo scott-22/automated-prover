@@ -1,5 +1,6 @@
 """Simple recursive descent parser to generate an AST"""
 
+from enum import StrEnum
 from .parser_ast import *
 from .lexer import *
 
@@ -14,14 +15,14 @@ def parse(lexer: Lexer) -> Formula:
 
 # Operator precedence (higher means higher precedence)
 OP_PRECEDENCE = {
-    "!": 3,       # Unary operators all have the highest precedence by default
-    "forall": 3,
-    "exists": 3,
-    "&": 2,
-    "|": 1,
-    "->": 0,
-    "<->": 0,
-    "begin": -1,  # Dummy to indicate no current operator
+    Operator.NOT: 3,     # Unary operators all have the highest precedence by default
+    Operator.FORALL: 3,
+    Operator.EXISTS: 3,
+    Operator.AND: 2,
+    Operator.OR: 1,
+    Operator.IMPLIES: 0,
+    Operator.IFF: 0,
+    Operator.DUMMY: -1,  # Dummy to indicate no current operator
 }
 
 
@@ -42,14 +43,14 @@ def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False, top_level_
         except StopIteration:
             return left_form 
         match tok:
-            case Token("bracket", ")"):
+            case Token(TokenType.BRACKET, ")"):
                 if parenthesized:
                     if top_level_paren:
                         next(lexer)  # Clear bracket from token stream
                     return left_form
                 else:
                     raise FOLSyntaxException(f"Unexpected closing bracket while parsing formula")
-            case Token("operator", op) if op not in ["!", "forall", "exists"]:
+            case Token(TokenType.OPERATOR, op) if op not in [Operator.NOT, Operator.FORALL, Operator.EXISTS]:
                 if OP_PRECEDENCE[parent_op] >= OP_PRECEDENCE[op]:
                     return left_form
             case _:
@@ -63,17 +64,17 @@ def parseOperand(lexer: Lexer) -> Formula:
     """Parse an operand to be part of a binary connective expression."""
     tok = next(lexer)
     match tok:
-        case Token("bracket", "("):
+        case Token(TokenType.BRACKET, "("):
             # Parse a parenthesized formula expression
             return parseFormula("begin", lexer, True, True)
-        case Token("identifier", name):
+        case Token(TokenType.IDENTIFIER, name):
             # Expect a relation
             return parseRelation(name, lexer)
-        case Token("operator", "!"):
+        case Token(TokenType.OPERATOR, Operator.NOT):
             # Parse a unary connective (negation)
             form = parseOperand(lexer)
-            return UnaryConnective("!", form)
-        case Token("operator", op) if op in ["forall", "exists"]:
+            return UnaryConnective(Operator.NOT, form)
+        case Token(TokenType.OPERATOR, op) if op in [Operator.FORALL, Operator.EXISTS]:
             # First parse the bound variable for the quantifier
             var = next(lexer)
             if var.type != "identifier":
@@ -94,15 +95,15 @@ def parseNegation(lexer: Lexer) -> Formula:
 def parseRelation(name: str, lexer: Lexer) -> Relation:
     """Parse a relation (without initial identifier, which is passed in)"""
     tok = next(lexer)
-    if tok != Token("bracket", "("):
+    if tok != Token(TokenType.BRACKET, "("):
         raise FOLSyntaxException(f"Expected open bracket after relation {name}")
     terms: list[Term] = []
     tok = next(lexer)
-    while tok != Token("bracket", ")"):
+    while tok != Token(TokenType.BRACKET, ")"):
         match tok:
-            case Token("identifier", arg_name):
+            case Token(TokenType.IDENTIFIER, arg_name):
                 terms.append(parseTerm(arg_name, lexer))
-            case Token("comma", _):
+            case Token(TokenType.COMMA, _):
                 # Commas are technically optional
                 pass
             case _:
@@ -115,13 +116,13 @@ def parseTerm(name: str, lexer: Lexer) -> Term:
     """Parse a term (without initial identifier, which is passed in)"""
     tok = lexer.peek()
     match tok:
-        case Token("comma", _) | Token("bracket", ")"):
+        case Token(TokenType.COMMA, _) | Token(TokenType.BRACKET, ")"):
             # We either have a constant or variable
             if name[0].isupper() or name[0].isdigit():
                 return Constant(name)
             else:
                 return Variable(name)
-        case Token("bracket", "("):
+        case Token(TokenType.BRACKET, "("):
             return parseFunction(name, lexer)
         case _:
             raise FOLSyntaxException(f"Unexpected {tok.type} while parsing term {name}: {tok.val}")
@@ -130,15 +131,15 @@ def parseTerm(name: str, lexer: Lexer) -> Term:
 def parseFunction(name: str, lexer: Lexer) -> Term:
     """Parse a function (without initial identifier, which is passed in)"""
     tok = next(lexer)
-    if tok != Token("bracket", "("):
+    if tok != Token(TokenType.BRACKET, "("):
         raise FOLSyntaxException(f"Expected open bracket after function {name}")
     terms: list[Term] = []
     tok = next(lexer)
-    while tok != Token("bracket", ")"):
+    while tok != Token(TokenType.BRACKET, ")"):
         match tok:
-            case Token("identifier", arg_name):
+            case Token(TokenType.IDENTIFIER, arg_name):
                 terms.append(parseTerm(arg_name, lexer))
-            case Token("comma", _):
+            case Token(TokenType.COMMA, _):
                 # Commas are technically optional
                 pass
             case _:

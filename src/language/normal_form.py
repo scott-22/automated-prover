@@ -1,6 +1,7 @@
 """Convert an AST into clauses by converting into normal form and skolemizing"""
 
 from collections.abc import Callable
+from .lexer import Operator
 from .parser_ast import *
 
 def simplifyConnectives(ast: Formula) -> Formula:
@@ -9,17 +10,17 @@ def simplifyConnectives(ast: Formula) -> Formula:
     by performing a preorder traversal and replacing each node.
     """
     match ast:
-        case BinaryConnective("->", left, right):
+        case BinaryConnective(Operator.IMPLIES, left, right):
             left = simplifyConnectives(left)
             right = simplifyConnectives(right)
-            ast = BinaryConnective("|", UnaryConnective("!", left), right)
-        case BinaryConnective("<->", left, right):
+            ast = BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, left), right)
+        case BinaryConnective(Operator.IFF, left, right):
             left = simplifyConnectives(left)
             right = simplifyConnectives(right)
             ast = BinaryConnective(
-                "&",
-                BinaryConnective("|", UnaryConnective("!", left), right),
-                BinaryConnective("|", UnaryConnective("!", right), left)
+                Operator.AND,
+                BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, left), right),
+                BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, right), left)
             )
         case BinaryConnective(_, left, right):
             ast.left = simplifyConnectives(left)
@@ -53,10 +54,10 @@ def standardizeVariables(ast: Formula):
 
 
 def standardizeVariablesFormula(
-        ast: Formula,
-        symbol_table: dict[str, str],
-        generate_unique_name: Callable[[], str]
-    ):
+    ast: Formula,
+    symbol_table: dict[str, str],
+    generate_unique_name: Callable[[str], str]
+):
     """Helper for standardizeVariables, walks a formula AST"""
     match ast:
         case Relation(_, args):
@@ -82,4 +83,3 @@ def standardizeVariablesTerm(ast: Term, symbol_table: dict[str, str]):
                 ast.name = symbol_table[ast.name]
         case Function(_, args):
             map(standardizeVariablesTerm, args)
-    

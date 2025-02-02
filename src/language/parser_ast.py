@@ -48,7 +48,7 @@ class Formula:
 
 @dataclass
 class Relation(Formula):
-    """A relation applied to a list of argument terms"""
+    """A relation applied to a list of argument terms. Note that relations are atoms"""
     args: list[Term]
 
 
