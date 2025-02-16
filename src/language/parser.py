@@ -1,6 +1,5 @@
 """Simple recursive descent parser to generate an AST"""
 
-from enum import StrEnum
 from .parser_ast import *
 from .lexer import *
 
@@ -26,7 +25,7 @@ OP_PRECEDENCE = {
 }
 
 
-def parseFormula(parent_op: str, lexer: Lexer, parenthesized = False, top_level_paren = False) -> Formula:
+def parseFormula(parent_op: Operator, lexer: Lexer, parenthesized = False, top_level_paren = False) -> Formula:
     """
     Parse a formula.
     Pass in the parent operator (logical connective) to parse according to precedence,

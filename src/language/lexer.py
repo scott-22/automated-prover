@@ -1,8 +1,8 @@
-"""Lex a string stream into a stream of tokens representing FOL"""
+"""Lex a string stream into a stream of tokens representing FOL."""
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Iterator
 
 
 # Types of tokens representing basic FOL language
@@ -33,7 +33,7 @@ class Operator(StrEnum):
 
 @dataclass
 class Token:
-    """Tokens to represent FOL"""
+    """Tokens to represent FOL."""
     type: TokenType
     val: str
 
@@ -44,13 +44,13 @@ class Token:
 
 
 class FOLSyntaxException(Exception):
-    """Exception class representing syntax errors"""
+    """Exception class representing syntax errors."""
 
 
-class LexerStream:
+class LexerStream(Iterator):
     """
     Lexer stream implementation to parse FOL.
-    Pass in a stream of text and it will return a stream of tokens
+    Pass in a stream of text and it will return a stream of tokens.
     """
     def __init__(self, text_stream: Iterator[str] | str):
         if isinstance(text_stream, str):
@@ -119,10 +119,10 @@ class LexerStream:
             raise FOLSyntaxException(f"Unrecognized symbol: {cur_char}")
 
 
-class Lexer:
+class Lexer(Iterator):
     """
     Tokenize a string (or stream of strings) into a stream of tokens.
-    Wraps the LexerStream to allow peeking of tokens
+    Wraps the LexerStream to allow peeking of tokens.
     """
     def __init__(self, text_stream: Iterator[str] | str):
         self.lexer = LexerStream(text_stream)
