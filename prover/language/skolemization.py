@@ -40,17 +40,17 @@ class SymbolManager:
         self.global_unique_funcs: set[str] = set()
         # Use a monotonic number for generating unique names
         self.numeric_id = 0
-    
+
     def registerFunc(self, name: str) -> None:
         self.global_unique_funcs.add(name)
-    
+
     def getSkolemFunc(self) -> str:
         """Return a unique skolem function name."""
         while (func := f"func_{numeric_id}") in self.global_unique_funcs:
             numeric_id += 1
         self.global_unique_funcs.add(func)
         return func
-    
+
     class VariableStandardizer:
         """
         Helper class to standardize variables within a single formula.
@@ -70,16 +70,16 @@ class SymbolManager:
             self.numeric_id = 0
             # Track unique function symbols seen so far
             self.func_name_register = func_name_register
-        
+
         def getNewSymbol(self, name: str):
             """Generate a new symbol based on the given name."""
             while (new_symbol := f"{name}_{self.numeric_id}") in self.symbol_set:
                 self.numeric_id += 1
             return new_symbol
-        
+
         def registerFunc(self, name: str):
             self.func_name_register.add(name)
-        
+
         @contextmanager
         def mapBoundVar(self, name: str) -> Iterator[str]:
             """
@@ -113,7 +113,7 @@ class SymbolManager:
                 self.symbol_set.add(new_var)
                 self.free_symbol_table[name] = new_var
                 return new_var
-    
+
     def standardize_variables(self) -> VariableStandardizer:
         return self.VariableStandardizer(self.global_unique_funcs)
 
@@ -127,14 +127,20 @@ def simplifyConnectives(ast: Formula) -> Formula:
         case BinaryConnective(Operator.IMPLIES, left, right):
             left = simplifyConnectives(left)
             right = simplifyConnectives(right)
-            ast = BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, left), right)
+            ast = BinaryConnective(
+                Operator.OR, UnaryConnective(Operator.NOT, left), right
+            )
         case BinaryConnective(Operator.IFF, left, right):
             left = simplifyConnectives(left)
             right = simplifyConnectives(right)
             ast = BinaryConnective(
                 Operator.AND,
-                BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, left), right),
-                BinaryConnective(Operator.OR, UnaryConnective(Operator.NOT, right), left)
+                BinaryConnective(
+                    Operator.OR, UnaryConnective(Operator.NOT, left), right
+                ),
+                BinaryConnective(
+                    Operator.OR, UnaryConnective(Operator.NOT, right), left
+                ),
             )
         case BinaryConnective(_, left, right):
             ast.left = simplifyConnectives(left)
@@ -154,9 +160,8 @@ def moveNegationsInward(ast: Formula) -> Formula:
         case UnaryConnective(Operator.NOT, arg):
             match arg:
                 # Apply DeMorgan's Law
-                case (
-                    BinaryConnective(Operator.AND, left, right)
-                    | BinaryConnective(Operator.OR, left, right)
+                case BinaryConnective(Operator.AND, left, right) | BinaryConnective(
+                    Operator.OR, left, right
                 ):
                     dual_op = Operator.AND if arg.name == Operator.OR else Operator.OR
                     left = moveNegationsInward(UnaryConnective(Operator.NOT, left))
@@ -168,8 +173,12 @@ def moveNegationsInward(ast: Formula) -> Formula:
                 # Express quantifiers in terms of duals
                 case Quantifier(op, var, inner_arg):
                     # We assume there are only two quantifiers, exists and forall
-                    dual_op = Operator.EXISTS if op == Operator.FORALL else Operator.FORALL
-                    inner_arg = moveNegationsInward(UnaryConnective(Operator.NOT, inner_arg))
+                    dual_op = (
+                        Operator.EXISTS if op == Operator.FORALL else Operator.FORALL
+                    )
+                    inner_arg = moveNegationsInward(
+                        UnaryConnective(Operator.NOT, inner_arg)
+                    )
                     return Quantifier(dual_op, var, inner_arg)
                 # No other connectives are expected
                 case BinaryConnective(op) | UnaryConnective(op):
@@ -182,7 +191,7 @@ def moveNegationsInward(ast: Formula) -> Formula:
             ast.left = moveNegationsInward(left)
             ast.right = moveNegationsInward(right)
         case UnaryConnective(_, arg) | Quantifier(_, _, arg):
-            ast.arg = moveNegationsInward(arg) 
+            ast.arg = moveNegationsInward(arg)
     return ast
 
 
@@ -194,8 +203,7 @@ def standardizeVariables(ast: Formula, symbol_manager: SymbolManager) -> Formula
 
 
 def standardizeVariablesFormula(
-    ast: Formula,
-    name_map: SymbolManager.VariableStandardizer
+    ast: Formula, name_map: SymbolManager.VariableStandardizer
 ) -> None:
     """Helper for standardizeVariables, walks a formula AST."""
     match ast:
@@ -212,7 +220,9 @@ def standardizeVariablesFormula(
                 standardizeVariablesFormula(arg, name_map)
 
 
-def standardizeVariablesTerm(ast: Term, name_map: SymbolManager.VariableStandardizer) -> None:
+def standardizeVariablesTerm(
+    ast: Term, name_map: SymbolManager.VariableStandardizer
+) -> None:
     """Helper for standardizeVariables, walks a term AST and renames vars if necessary."""
     match ast:
         case Variable(name):
@@ -277,35 +287,26 @@ def getInnermostQuantifier(ast: Formula) -> Formula | None:
 
 
 def skolemize(ast: Formula, symbol_manager: SymbolManager) -> Formula:
-    """Skolemize a formula in PNF."""
+    """
+    Skolemize a formula in PNF, and return a quantifier-free formula. This
+    formula is implicitly universally-quantified, but the quantifiers are no
+    longer relevant after this step.
+    """
     # Universally-quantified variables to use as arg list for skolem func
     var_list: list[Variable] = []
     # Maps existentially-quantified variables to their skolem func
     skolem_map: dict[str, Function] = {}
-    # The root formula (first universal quantifier or non-quantified formula)
-    root: Formula = None
-    # The previous universal quantifier
-    prev_quantifier: Quantifier = None
 
     while isinstance(ast, Quantifier):
         if ast.name == Operator.EXISTS:
-            # We replace the existential variable with a skolem func, and remove
-            # the quantifier from the AST
+            # We replace the existentially-quantified variable with a skolem func
             skolem_func = symbol_manager.getSkolemFunc()
             skolem_map[ast.var.name] = Function(skolem_func, var_list.copy())
-            if prev_quantifier is not None:
-                prev_quantifier.arg = ast.arg
         else:
-            # Add the variable to the var_list and set prev_quantifier (as well
-            # as root if needed)
+            # Add the universally-quantified variable to the var_list
             var_list.append(ast.var)
-            prev_quantifier = ast
-            if root is None:
-                root = ast
-    if root is None:
-        root = ast
     skolemizeFormula(ast, skolem_map)
-    return root
+    return ast
 
 
 def skolemizeFormula(ast: Formula, name_map: dict[str, Function]) -> None:

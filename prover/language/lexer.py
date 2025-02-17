@@ -7,10 +7,10 @@ from enum import StrEnum
 
 # Types of tokens representing basic FOL language
 class TokenType(StrEnum):
-    OPERATOR = "operator"      # Logical operator
+    OPERATOR = "operator"  # Logical operator
     IDENTIFIER = "identifier"  # Name of a function, relation, or bound/free variable
-    BRACKET = "bracket"        # Open or close bracket
-    COMMA = "comma"            # Separator between function params
+    BRACKET = "bracket"  # Open or close bracket
+    COMMA = "comma"  # Separator between function params
 
     def __repr__(self):
         return f"'{self.value}'"
@@ -34,6 +34,7 @@ class Operator(StrEnum):
 @dataclass
 class Token:
     """Tokens to represent FOL."""
+
     type: TokenType
     val: str
 
@@ -52,6 +53,7 @@ class LexerStream(Iterator):
     Lexer stream implementation to parse FOL.
     Pass in a stream of text and it will return a stream of tokens.
     """
+
     def __init__(self, text_stream: Iterator[str] | str):
         if isinstance(text_stream, str):
             self.text_stream = None
@@ -64,14 +66,14 @@ class LexerStream(Iterator):
 
     def __iter__(self):
         return self
-    
+
     def get_text_from_stream(self):
         if self.idx >= len(self.cur_text):
             if not self.text_stream:
                 raise StopIteration
             self.cur_text = next(self.text_stream)
             self.idx = 0
-        
+
     # Currently does not support identifier names split across multiple stream elements
     def __next__(self) -> Token:
         # Find next non-whitespace character
@@ -124,21 +126,22 @@ class Lexer(Iterator):
     Tokenize a string (or stream of strings) into a stream of tokens.
     Wraps the LexerStream to allow peeking of tokens.
     """
+
     def __init__(self, text_stream: Iterator[str] | str):
         self.lexer = LexerStream(text_stream)
         self.token_stack: list[Token] = []
-    
+
     def __iter__(self):
         return self
-    
+
     def __next__(self) -> Token:
         if len(self.token_stack) > 0:
             return self.token_stack.pop()
         return next(self.lexer)
-    
+
     def put_back(self, tok: Token):
         self.token_stack.append(tok)
-    
+
     def peek(self):
         tok = self.__next__()
         self.put_back(tok)

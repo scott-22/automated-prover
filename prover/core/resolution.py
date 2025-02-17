@@ -3,7 +3,7 @@ from collections import deque
 from .clause import Clause
 
 
-# Perform all resolutions of two clauses and return results as an iterator 
+# Perform all resolutions of two clauses and return results as an iterator
 def resolve(x: Clause, y: Clause) -> Iterator[Clause]:
     for lit in x:
         if -lit in y:

@@ -14,7 +14,7 @@ def parse(lexer: Lexer) -> Formula:
 
 # Operator precedence (higher means higher precedence)
 OP_PRECEDENCE = {
-    Operator.NOT: 3,     # Unary operators all have the highest precedence by default
+    Operator.NOT: 3,  # Unary operators all have the highest precedence by default
     Operator.FORALL: 3,
     Operator.EXISTS: 3,
     Operator.AND: 2,
@@ -25,7 +25,9 @@ OP_PRECEDENCE = {
 }
 
 
-def parseFormula(parent_op: Operator, lexer: Lexer, parenthesized = False, top_level_paren = False) -> Formula:
+def parseFormula(
+    parent_op: Operator, lexer: Lexer, parenthesized=False, top_level_paren=False
+) -> Formula:
     """
     Parse a formula.
     Pass in the parent operator (logical connective) to parse according to precedence,
@@ -40,7 +42,7 @@ def parseFormula(parent_op: Operator, lexer: Lexer, parenthesized = False, top_l
         try:
             tok = lexer.peek()
         except StopIteration:
-            return left_form 
+            return left_form
         match tok:
             case Token(TokenType.BRACKET, ")"):
                 if parenthesized:
@@ -48,14 +50,24 @@ def parseFormula(parent_op: Operator, lexer: Lexer, parenthesized = False, top_l
                         next(lexer)  # Clear bracket from token stream
                     return left_form
                 else:
-                    raise FOLSyntaxException(f"Unexpected closing bracket while parsing formula")
-            case Token(TokenType.OPERATOR, op) if op not in [Operator.NOT, Operator.FORALL, Operator.EXISTS]:
+                    raise FOLSyntaxException(
+                        f"Unexpected closing bracket while parsing formula"
+                    )
+            case Token(TokenType.OPERATOR, op) if op not in [
+                Operator.NOT,
+                Operator.FORALL,
+                Operator.EXISTS,
+            ]:
                 if OP_PRECEDENCE[parent_op] >= OP_PRECEDENCE[op]:
                     return left_form
             case _:
-                raise FOLSyntaxException(f"Expected an operator, instead got {tok.type}: {tok.val}")
+                raise FOLSyntaxException(
+                    f"Expected an operator, instead got {tok.type}: {tok.val}"
+                )
         op = next(lexer)
-        right_form = parseFormula(op.val, lexer, parenthesized, False)  # Right-hand operands are not top-level paren expressions
+        right_form = parseFormula(
+            op.val, lexer, parenthesized, False
+        )  # Right-hand operands are not top-level paren expressions
         left_form = BinaryConnective(op.val, left_form, right_form)
 
 
@@ -77,13 +89,17 @@ def parseOperand(lexer: Lexer) -> Formula:
             # First parse the bound variable for the quantifier
             var = next(lexer)
             if var.type != "identifier":
-                raise FOLSyntaxException(f"Expected variable after quantifier, instead got {tok.type}: {tok.val}")
+                raise FOLSyntaxException(
+                    f"Expected variable after quantifier, instead got {tok.type}: {tok.val}"
+                )
             # Then parse the formula
             form = parseOperand(lexer)
             return Quantifier(op, var.val, form)
         case _:
-            raise FOLSyntaxException(f"Unexpected {tok.type} while parsing formula: {tok.val}")
-    
+            raise FOLSyntaxException(
+                f"Unexpected {tok.type} while parsing formula: {tok.val}"
+            )
+
 
 def parseNegation(lexer: Lexer) -> Formula:
     """Parse the negation of a formula (without initial negation operator)"""
@@ -106,7 +122,9 @@ def parseRelation(name: str, lexer: Lexer) -> Relation:
                 # Commas are technically optional
                 pass
             case _:
-                raise FOLSyntaxException(f"Unexpected {tok.type} in relation {name}: {tok.val}")
+                raise FOLSyntaxException(
+                    f"Unexpected {tok.type} in relation {name}: {tok.val}"
+                )
         tok = next(lexer)
     return Relation(name, terms)
 
@@ -124,7 +142,9 @@ def parseTerm(name: str, lexer: Lexer) -> Term:
         case Token(TokenType.BRACKET, "("):
             return parseFunction(name, lexer)
         case _:
-            raise FOLSyntaxException(f"Unexpected {tok.type} while parsing term {name}: {tok.val}")
+            raise FOLSyntaxException(
+                f"Unexpected {tok.type} while parsing term {name}: {tok.val}"
+            )
 
 
 def parseFunction(name: str, lexer: Lexer) -> Term:
@@ -142,8 +162,12 @@ def parseFunction(name: str, lexer: Lexer) -> Term:
                 # Commas are technically optional
                 pass
             case _:
-                raise FOLSyntaxException(f"Unexpected {tok.type} in function {name}: {tok.val}")
+                raise FOLSyntaxException(
+                    f"Unexpected {tok.type} in function {name}: {tok.val}"
+                )
         tok = next(lexer)
     if len(terms) == 0:
-        raise FOLSyntaxException(f"Function {name} of arity 0 should be a constant instead")
+        raise FOLSyntaxException(
+            f"Function {name} of arity 0 should be a constant instead"
+        )
     return Function(name, terms)
