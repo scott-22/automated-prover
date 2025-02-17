@@ -1,11 +1,11 @@
-"""Simple recursive descent parser to generate an AST"""
+"""Simple recursive descent parser to generate an AST."""
 
 from .parser_ast import *
 from .lexer import *
 
 
 def parse(lexer: Lexer) -> Formula:
-    """Generate an AST from a Lexer"""
+    """Generate an AST from a Lexer. Binary connectives are left-associative."""
     try:
         return parseFormula("begin", lexer)
     except StopIteration:
@@ -33,7 +33,8 @@ def parseFormula(
     Pass in the parent operator (logical connective) to parse according to precedence,
     and whether this expression is parenthesized. If this expression is parenthesized,
     we keep track of whether it is a "top-level" parenthesized expression, in which case
-    we clear the closing bracket from the token stream.
+    we clear the closing bracket from the token stream. Note that binary connectives are
+    parsed to be left-associative.
     """
     left_form = parseOperand(lexer)
     # Keep parsing binary connectives in a left-associative way until we reach end of stream or
