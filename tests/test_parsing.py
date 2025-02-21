@@ -1,10 +1,10 @@
 """Test lexing and parsing."""
 
 import pytest
-from functools import partial
 from prover.language.lexer import TokenType, Operator, Token, Lexer
 from prover.language.parser_ast import *
 from prover.language.parser import parse
+from utils import *
 
 
 # Test helpers
@@ -24,29 +24,6 @@ def make_comma() -> Token:
 
 def make_op(op: str) -> Token:
     return Token(TokenType.OPERATOR, op)
-
-
-# Shorten AST names
-
-Const = Constant
-Var = Variable
-Func = Function
-
-Rel = Relation
-
-
-def RelVar(name: str, *args: list[str]):
-    """Relation consisting only of variables"""
-    return Rel(name, list(map(Var, args)))
-
-
-Forall = partial(Quantifier, "forall")
-Exists = partial(Quantifier, "exists")
-Not = partial(UnaryConnective, "!")
-And = partial(BinaryConnective, "&")
-Or = partial(BinaryConnective, "|")
-Implies = partial(BinaryConnective, "->")
-Iff = partial(BinaryConnective, "<->")
 
 
 @pytest.mark.parametrize(
@@ -73,7 +50,7 @@ Iff = partial(BinaryConnective, "<->")
             ],
         ),
         (
-            "A & B | C -> D <-> E",
+            "A&B|C->D<->E",
             [
                 make_id("A"),
                 make_op("&"),

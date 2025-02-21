@@ -46,8 +46,8 @@ class SymbolManager:
 
     def getSkolemFunc(self) -> str:
         """Return a unique skolem function name."""
-        while (func := f"func_{numeric_id}") in self.global_unique_funcs:
-            numeric_id += 1
+        while (func := f"func_{self.numeric_id}") in self.global_unique_funcs:
+            self.numeric_id += 1
         self.global_unique_funcs.add(func)
         return func
 
@@ -139,7 +139,7 @@ def simplifyConnectives(ast: Formula) -> Formula:
                     Operator.OR, UnaryConnective(Operator.NOT, left), right
                 ),
                 BinaryConnective(
-                    Operator.OR, UnaryConnective(Operator.NOT, right), left
+                    Operator.OR, left, UnaryConnective(Operator.NOT, right)
                 ),
             )
         case BinaryConnective(_, left, right):
@@ -198,38 +198,37 @@ def moveNegationsInward(ast: Formula) -> Formula:
 def standardizeVariables(ast: Formula, symbol_manager: SymbolManager) -> Formula:
     """Ensure all bound variables in a formula have different names."""
     name_map = symbol_manager.standardize_variables()
-    standardizeVariablesFormula(ast, name_map)
+
+    def standardizeVariablesFormula(ast: Formula) -> None:
+        """Helper for standardizeVariables, walks a formula AST."""
+        nonlocal name_map
+        match ast:
+            case Relation(_, args):
+                for arg in args:
+                    standardizeVariablesTerm(arg)
+            case BinaryConnective(_, left, right):
+                standardizeVariablesFormula(left)
+                standardizeVariablesFormula(right)
+            case UnaryConnective(_, arg):
+                standardizeVariablesFormula(arg)
+            case Quantifier(_, var, arg):
+                with name_map.mapBoundVar(var) as new_name:
+                    ast.var = new_name
+                    standardizeVariablesFormula(arg)
+
+    def standardizeVariablesTerm(ast: Term) -> None:
+        """Helper for standardizeVariables, walks a term AST and renames vars if necessary."""
+        nonlocal name_map
+        match ast:
+            case Variable(name):
+                ast.name = name_map(name)
+            case Function(name, args):
+                name_map.registerFunc(name)
+                for arg in args:
+                    standardizeVariablesTerm(arg)
+
+    standardizeVariablesFormula(ast)
     return ast
-
-
-def standardizeVariablesFormula(
-    ast: Formula, name_map: SymbolManager.VariableStandardizer
-) -> None:
-    """Helper for standardizeVariables, walks a formula AST."""
-    match ast:
-        case Relation(_, args):
-            map(partial(standardizeVariablesTerm, name_map=name_map), args)
-        case BinaryConnective(_, left, right):
-            standardizeVariablesFormula(left, name_map)
-            standardizeVariablesFormula(right, name_map)
-        case UnaryConnective(_, arg):
-            standardizeVariablesFormula(arg, name_map)
-        case Quantifier(_, var, arg):
-            with name_map.mapBoundVar(var.name) as new_name:
-                var.name = new_name
-                standardizeVariablesFormula(arg, name_map)
-
-
-def standardizeVariablesTerm(
-    ast: Term, name_map: SymbolManager.VariableStandardizer
-) -> None:
-    """Helper for standardizeVariables, walks a term AST and renames vars if necessary."""
-    match ast:
-        case Variable(name):
-            ast.name = name_map(name)
-        case Function(name, args):
-            name_map.registerFunc(name)
-            map(partial(standardizeVariablesTerm, name_map=name_map), args)
 
 
 def moveQuantifiersOutward(ast: Formula) -> Formula:
@@ -292,45 +291,48 @@ def skolemize(ast: Formula, symbol_manager: SymbolManager) -> Formula:
     formula is implicitly universally-quantified, but the quantifiers are no
     longer relevant after this step.
     """
-    # Universally-quantified variables to use as arg list for skolem func
-    var_list: list[Variable] = []
+    # Variables/skolem funcs to use as arg list for nextskolem func
+    var_list: list[Variable | Function] = []
     # Maps existentially-quantified variables to their skolem func
     skolem_map: dict[str, Function] = {}
 
     while isinstance(ast, Quantifier):
         if ast.name == Operator.EXISTS:
             # We replace the existentially-quantified variable with a skolem func
-            skolem_func = symbol_manager.getSkolemFunc()
-            skolem_map[ast.var.name] = Function(skolem_func, var_list.copy())
+            skolem_func_symbol = symbol_manager.getSkolemFunc()
+            skolem_func = Function(skolem_func_symbol, var_list.copy())
+            skolem_map[ast.var] = skolem_func
+            var_list.append(skolem_func)
         else:
             # Add the universally-quantified variable to the var_list
-            var_list.append(ast.var)
-    skolemizeFormula(ast, skolem_map)
-    return ast
+            var_list.append(Variable(ast.var))
+        ast = ast.arg
 
+    def skolemizeFormula(ast: Formula) -> None:
+        """Helper for skolemize, skolemizes a quantifier-free formula."""
+        match ast:
+            case Relation(_, args):
+                ast.args = list(map(skolemizeTerm, args))
+            case BinaryConnective(_, left, right):
+                skolemizeFormula(left)
+                skolemizeFormula(right)
+            case UnaryConnective(_, arg):
+                skolemizeFormula(arg)
+            case Quantifier(op, _, _):
+                raise SkolemizationException(
+                    f"Unexpected quantifier {op} found within quantifier-free formula"
+                )
 
-def skolemizeFormula(ast: Formula, name_map: dict[str, Function]) -> None:
-    """Helper for skolemize, skolemizes a quantifier-free formula."""
-    match ast:
-        case Relation(_, args):
-            ast.args = [skolemizeTerm(arg, name_map) for arg in args]
-        case BinaryConnective(_, left, right):
-            skolemizeFormula(left, name_map)
-            skolemizeFormula(right, name_map)
-        case UnaryConnective(_, arg):
-            skolemizeFormula(arg, name_map)
-        case Quantifier(op, _, _):
-            raise SkolemizationException(
-                f"Unexpected quantifier {op} found within quantifier-free formula"
-            )
-
-
-def skolemizeTerm(ast: Term, name_map: dict[str, Function]) -> Term:
-    """Helper for skolemize, walks a term AST and replaces vars with skolem functions."""
-    match ast:
-        case Variable(name):
-            if name in name_map:
-                return name_map[name]
-        case Function(_, args):
-            ast.args = [skolemizeTerm(arg, name_map) for arg in args]
+    def skolemizeTerm(ast: Term) -> Term:
+        """Helper for skolemize, walks a term AST and replaces vars with skolem functions."""
+        nonlocal skolem_map
+        match ast:
+            case Variable(name):
+                if name in skolem_map:
+                    return skolem_map[name]
+            case Function(_, args):
+                ast.args = list(map(skolemizeTerm, args))
+        return ast
+    
+    skolemizeFormula(ast)
     return ast
