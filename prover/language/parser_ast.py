@@ -62,7 +62,7 @@ class Relation(Formula):
 class Quantifier(Formula):
     """A quantifier (has a bound variable and a formula)"""
 
-    var: Variable
+    var: str
     arg: Formula
 
 

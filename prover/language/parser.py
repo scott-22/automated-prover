@@ -93,6 +93,10 @@ def parseOperand(lexer: Lexer) -> Formula:
                 raise FOLSyntaxException(
                     f"Expected variable after quantifier, instead got {tok.type}: {tok.val}"
                 )
+            elif var.val[0].isupper() or var.val[0].isdigit():
+                raise FOLSyntaxException(
+                    f"Bound variable {var.val} cannot begin with capital letter or digit"
+                )
             # Then parse the formula
             form = parseOperand(lexer)
             return Quantifier(op, var.val, form)
