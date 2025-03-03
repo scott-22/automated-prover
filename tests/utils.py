@@ -1,4 +1,6 @@
 from functools import partial
+from prover.language.lexer import Lexer
+from prover.language.parser import parse
 from prover.language.parser_ast import *
 
 
@@ -160,6 +162,10 @@ def check_unique_var_names(ast: Formula) -> None:
                     check_unique_var_names_term(arg)
     
     check_unique_var_names_formula(ast)
+
+
+def make_ast(fol: str) -> Formula:
+    return parse(Lexer(fol))
 
 
 # Shorten AST names

@@ -2,8 +2,6 @@
 
 import copy
 import pytest
-from prover.language.lexer import Lexer
-from prover.language.parser import parse
 from prover.language.skolemization import *
 from utils import *
 
@@ -11,10 +9,6 @@ from utils import *
 @pytest.fixture
 def symbol_manager():
     return SymbolManager()
-
-
-def make_ast(fol: str) -> Formula:
-    return parse(Lexer(fol))
 
 
 @pytest.mark.parametrize(

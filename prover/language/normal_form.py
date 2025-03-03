@@ -39,12 +39,12 @@ def annotateAstData(ast: Formula) -> DecoratedFormula:
             ast.num_conjunctions = (
                 left.num_conjunctions + right.num_conjunctions + is_conjunction
             )
-        case Relation():
+        case UnaryConnective() | Relation():
             ast.num_conjunctions = 0
         case _:
             raise NormalFormException(
-                f"Unexpected AST node {type(ast)}. Only conjunctions, disjunctions, "
-                "and atoms should be present when converting to CNF"
+                f"Unexpected node {type(ast)} within AST {ast}. Only conjunctions, "
+                "disjunctions, and literals should be present when converting to CNF",
             )
     return ast
 
@@ -56,18 +56,21 @@ def lowerDisjunction(ast: DecoratedFormula) -> DecoratedFormula:
     "pushing" a disjunction into a conjunctive clause. It is a precondition
     that the current AST node is a disjunction (| node) and that both left
     and right child trees are in CNF.
+
+    Note that we use the number of conjunctions as a heuristic for which
+    branch to lower the disjunction into. We lower into the branch with more
+    conjunctions, since the other branch will be duplicated. In case of a
+    tie, we lower into the right branch.
     """
     if ast.num_conjunctions == 0:
         return ast
     left_is_conjunction = (
-        isinstance(ast.left, BinaryConnective) and ast.left.op == Operator.AND
+        isinstance(ast.left, BinaryConnective) and ast.left.name == Operator.AND
     )
     right_is_conjunction = (
-        isinstance(ast.right, BinaryConnective) and ast.right.op == Operator.AND
+        isinstance(ast.right, BinaryConnective) and ast.right.name == Operator.AND
     )
-    # We use the number of conjunctions as a heuristic for which branch to lower
-    # the disjunction into. We lower into the branch with more conjunctions,
-    # since the other branch will be duplicated
+    # Use number of conjunctions as a heuristic for which branch to lower into
     if left_is_conjunction and (
         not right_is_conjunction
         or ast.left.num_conjunctions > ast.right.num_conjunctions
@@ -87,16 +90,15 @@ def lowerDisjunction(ast: DecoratedFormula) -> DecoratedFormula:
         )
     else:
         raise NormalFormException(
-            f"Expected {ast.num_conjunctions} conjunctions at the top of the "
-            "given syntax subtree, but they are either not present or the subtree "
-            "is not in CNF"
+            f"Expected {ast.num_conjunctions} conjunctions at the top of the given "
+            f"AST {ast}, but they are either not present or the subtree is not in CNF"
         )
     # Update number of conjunctions
     ast.left.num_conjunctions = (
-        ast.left.left.num_conjunctions + ast.left.right.num_conjunctions + 1
+        ast.left.left.num_conjunctions + ast.left.right.num_conjunctions
     )
     ast.right.num_conjunctions = (
-        ast.right.left.num_conjunctions + ast.right.right.num_conjunctions + 1
+        ast.right.left.num_conjunctions + ast.right.right.num_conjunctions
     )
     ast.left = lowerDisjunction(ast.left)
     ast.right = lowerDisjunction(ast.right)

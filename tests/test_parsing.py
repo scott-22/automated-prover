@@ -1,7 +1,7 @@
 """Test lexing and parsing."""
 
 import pytest
-from prover.language.lexer import TokenType, Operator, Token, Lexer
+from prover.language.lexer import TokenType, Token, Lexer
 from prover.language.parser_ast import *
 from prover.language.parser import parse
 from utils import *
