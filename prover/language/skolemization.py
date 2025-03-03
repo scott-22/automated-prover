@@ -2,17 +2,8 @@
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from functools import partial
 from .lexer import Operator
 from .parser_ast import *
-
-
-class NormalFormException(Exception):
-    """
-    Exception class representing errors while converting into normal form.
-    Since all valid ASTs can be converted to normal form, these errors
-    are strictly programming errors.
-    """
 
 
 class SkolemizationException(Exception):
@@ -182,9 +173,10 @@ def moveNegationsInward(ast: Formula) -> Formula:
                     return Quantifier(dual_op, var, inner_arg)
                 # No other connectives are expected
                 case BinaryConnective(op) | UnaryConnective(op):
-                    raise NormalFormException(
-                        f"Unexpected connective {op}. Note that this function "
-                        "expects binary connectives to be simplified into "
+                    raise SkolemizationException(
+                        f"Unexpected connective {op} while moving negations. "
+                        "Note that this function expects binary connectives "
+                        "to be simplified into "
                         f"{Operator.NOT}, {Operator.AND}, {Operator.OR}"
                     )
         case BinaryConnective(_, left, right):
@@ -333,6 +325,6 @@ def skolemize(ast: Formula, symbol_manager: SymbolManager) -> Formula:
             case Function(_, args):
                 ast.args = list(map(skolemizeTerm, args))
         return ast
-    
+
     skolemizeFormula(ast)
     return ast

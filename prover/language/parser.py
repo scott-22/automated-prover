@@ -1,7 +1,9 @@
 """Simple recursive descent parser to generate an AST."""
 
-from .parser_ast import *
 from .lexer import *
+from .normal_form import *
+from .parser_ast import *
+from .skolemization import *
 
 
 def parse(lexer: Lexer) -> Formula:
