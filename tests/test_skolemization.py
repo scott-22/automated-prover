@@ -47,14 +47,24 @@ def test_simplify_connectives(original_ast, transformed_ast):
     "original_ast, transformed_ast",
     [
         (
-            make_ast("exists x (F(x) | F(b) & forall z (R(z, u) & F(z) | F(t))) | R(z)"),
-            make_ast("exists x (F(x) | F(b) & forall z (R(z, u) & F(z) | F(t))) | R(z)"),
+            make_ast(
+                "exists x (F(x) | F(b) & forall z (R(z, u) & F(z) | F(t))) | R(z)"
+            ),
+            make_ast(
+                "exists x (F(x) | F(b) & forall z (R(z, u) & F(z) | F(t))) | R(z)"
+            ),
         ),
         (make_ast("forall x !A(x) & !B(x)"), make_ast("forall x !A(x) & !B(x)")),
         (make_ast("!(A(1) & B(0))"), make_ast("!A(1) | !B(0)")),
         (make_ast("!(A(1) | B(0))"), make_ast("!A(1) & !B(0)")),
-        (make_ast("!(A(x) & B(x) & C(x) & D(x))"), make_ast("!A(x) | !B(x) | !C(x) | !D(x)")),
-        (make_ast("!(A(x) & B(x) | C(x) & D(x))"), make_ast("(!A(x) | !B(x)) & (!C(x) | !D(x))")),
+        (
+            make_ast("!(A(x) & B(x) & C(x) & D(x))"),
+            make_ast("!A(x) | !B(x) | !C(x) | !D(x)"),
+        ),
+        (
+            make_ast("!(A(x) & B(x) | C(x) & D(x))"),
+            make_ast("(!A(x) | !B(x)) & (!C(x) | !D(x))"),
+        ),
         (
             make_ast("!forall x exists y R(x, y)"),
             make_ast("exists x forall y !R(x, y)"),
@@ -64,8 +74,8 @@ def test_simplify_connectives(original_ast, transformed_ast):
         (
             make_ast("forall x !(!forall y !(A(x) & B(x)) & C(x))"),
             make_ast("forall x (forall y (!A(x) | !B(x)) | !C(x))"),
-        )
-    ]
+        ),
+    ],
 )
 def test_move_negations_inward(original_ast, transformed_ast):
     assert moveNegationsInward(original_ast) == transformed_ast
@@ -74,9 +84,7 @@ def test_move_negations_inward(original_ast, transformed_ast):
 @pytest.mark.parametrize(
     "first_ast, second_ast, strict_funcs",
     [
-        (
-            make_ast("A(x) & B(y) & C(x)"), make_ast("A(y) & B(x) & C(y)"), True
-        ),
+        (make_ast("A(x) & B(y) & C(x)"), make_ast("A(y) & B(x) & C(y)"), True),
         (
             make_ast("forall x forall y R(x, y, g(u, f(x)))"),
             make_ast("forall y forall x R(y, x, g(v, f(y)))"),
@@ -102,7 +110,7 @@ def test_move_negations_inward(original_ast, transformed_ast):
             make_ast("forall x (forall x R(x) & exists x forall x P(x, x))"),
             True,
         ),
-    ]
+    ],
 )
 def test_check_asts_are_isomorphic(first_ast, second_ast, strict_funcs):
     """
@@ -115,11 +123,7 @@ def test_check_asts_are_isomorphic(first_ast, second_ast, strict_funcs):
 @pytest.mark.parametrize(
     "first_ast, second_ast, strict_funcs",
     [
-        (
-            make_ast("forall x forall y R(y)"),
-            make_ast("forall x R(x)"),
-            False
-        ),
+        (make_ast("forall x forall y R(y)"), make_ast("forall x R(x)"), False),
         (
             make_ast("A(x) & B(y) & C(x)"),
             make_ast("A(y) & B(x) & C(x)"),
@@ -128,19 +132,19 @@ def test_check_asts_are_isomorphic(first_ast, second_ast, strict_funcs):
         (
             make_ast("forall x forall y R(x, y)"),
             make_ast("forall x forall x R(x, x)"),
-            True
+            True,
         ),
         (
             make_ast("forall x forall y R(f(x, y))"),
             make_ast("forall x forall y R(g(y, x))"),
-            False
+            False,
         ),
         (
             make_ast("R(x, g(y, x, z, f(y, h(z), x), w), h(f(z)))"),
             make_ast("R(y, f(x, y, w, g(x, h(w), y), z), h(g(w)))"),
-            True
+            True,
         ),
-    ]
+    ],
 )
 def test_check_asts_are_not_isomorphic(first_ast, second_ast, strict_funcs):
     with pytest.raises(Exception):
@@ -178,13 +182,13 @@ def test_check_asts_are_not_isomorphic(first_ast, second_ast, strict_funcs):
             )
             """
         ),
-    ]
+    ],
 )
 def test_standardize_variables(original_ast, symbol_manager):
     original_ast_copy = copy.deepcopy(original_ast)
     standardized_ast = standardizeVariables(original_ast, symbol_manager)
     check_unique_var_names(standardized_ast)
-    check_isomorphic(standardized_ast, original_ast_copy)        
+    check_isomorphic(standardized_ast, original_ast_copy)
 
 
 @pytest.mark.parametrize(
@@ -231,9 +235,9 @@ def test_standardize_variables(original_ast, symbol_manager):
                         P(z)
                     )
                 """
-            )
-        )
-    ]
+            ),
+        ),
+    ],
 )
 def test_move_quantifiers_outwards(original_ast, transformed_ast):
     assert moveQuantifiersOutward(original_ast) == transformed_ast
@@ -264,9 +268,9 @@ def test_move_quantifiers_outwards(original_ast, transformed_ast):
                 "A(x1, x2, f0(g0(x1, x2)), f1(g1(x1, x2, g0(x1, x2)))) & "
                 "B(x2, f1(x5)) | "
                 "C(g2(x1, x2, g0(x1, x2), g1(x1, x2, g0(x1, x2)), x5), x1, g0(x1, x2))"
-            )
-        )
-    ]
+            ),
+        ),
+    ],
 )
 def test_skolemize(original_ast, transformed_ast, symbol_manager):
     skolemized_ast = skolemize(original_ast, symbol_manager)

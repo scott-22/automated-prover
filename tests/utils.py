@@ -6,6 +6,7 @@ from prover.language.parser_ast import *
 
 # Helper functions
 
+
 def check_isomorphic(x: Formula, y: Formula, strict_funcs: bool = True) -> None:
     """
     Check if two ASTs are isomorphic. Two FOL ASTs are considered isomorphic if the
@@ -31,7 +32,7 @@ def check_isomorphic(x: Formula, y: Formula, strict_funcs: bool = True) -> None:
     free_var_bijection: dict[str, str] = {}
     # Bijective from func names in first AST to second AST
     func_bijection: dict[str, str] = {}
-    
+
     def check_isomorphic_formula(x: Formula, y: Formula) -> None:
         """Helper for is_isomorphic to recursively check two formulas."""
         nonlocal quantifier_enumeration, x_bound_var_map, y_bound_var_map
@@ -81,7 +82,7 @@ def check_isomorphic(x: Formula, y: Formula, strict_funcs: bool = True) -> None:
                 x_is_bound = x_bound_var_map.get(x.name) is not None
                 y_is_bound = y_bound_var_map.get(y.name) is not None
                 assert x_is_bound == y_is_bound
-                
+
                 if x_is_bound:
                     # For bound vars, check their corresponding quantifiers
                     assert x_bound_var_map[x.name] == y_bound_var_map[y.name]
@@ -110,7 +111,7 @@ def check_isomorphic(x: Formula, y: Formula, strict_funcs: bool = True) -> None:
                     func_bijection[x.name] = y.name
                 for x_arg, y_arg in zip(x.args, y.args):
                     check_isomorphic_term(x_arg, y_arg)
-    
+
     check_isomorphic_formula(x, y)
 
 
@@ -145,7 +146,7 @@ def check_unique_var_names(ast: Formula) -> None:
                 currently_bound_vars.add(var)
                 check_unique_var_names_formula(arg)
                 currently_bound_vars.remove(var)
-    
+
     def check_unique_var_names_term(ast: Term) -> None:
         """Helper to recursively check a term."""
         nonlocal currently_bound_vars, bound_var_names, free_var_names
@@ -160,7 +161,7 @@ def check_unique_var_names(ast: Formula) -> None:
             case Function(_, args):
                 for arg in args:
                     check_unique_var_names_term(arg)
-    
+
     check_unique_var_names_formula(ast)
 
 

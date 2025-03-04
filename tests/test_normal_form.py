@@ -1,4 +1,4 @@
-""""""
+"""Test converting a skolemized formula into CNF."""
 
 import pytest
 from collections.abc import Callable
@@ -6,15 +6,19 @@ from prover.language.normal_form import *
 from utils import *
 
 
-def Dec(ast_func: Callable[..., Formula], num_conjunctions: int) -> Callable[..., DecoratedFormula]:
+def Dec(
+    ast_func: Callable[..., Formula], num_conjunctions: int
+) -> Callable[..., DecoratedFormula]:
     """
     Given a formula helper, returns a closure that wraps it and annotates the
     returned formula with data. Makes decorating formula nodes easier.
     """
+
     def decorating_closure(*args, **kwargs) -> DecoratedFormula:
         result_formula = ast_func(*args, **kwargs)
         result_formula.num_conjunctions = num_conjunctions
         return result_formula
+
     return decorating_closure
 
 
@@ -33,36 +37,124 @@ def compare_annotations(left: DecoratedFormula, right: DecoratedFormula) -> None
             make_ast("(A(x) & B(x)) | (C(x) | D(x) & E(x))"),
             Dec(Or, 2)(
                 Dec(And, 1)(Dec(RelVar, 0)("A", "x"), Dec(RelVar, 0)("B", "x")),
-                Dec(Or, 1)(Dec(RelVar, 0)("C", "x"), Dec(And, 1)(Dec(RelVar, 0)("D", "x"), Dec(RelVar, 0)("E", "x")))
-            )
+                Dec(Or, 1)(
+                    Dec(RelVar, 0)("C", "x"),
+                    Dec(And, 1)(Dec(RelVar, 0)("D", "x"), Dec(RelVar, 0)("E", "x")),
+                ),
+            ),
         ),
         (
             make_ast("(!A(x) & B(x) & (C(x) & !D(x))) | ((!A(x) | B(x)) & C(x))"),
             Dec(Or, 4)(
                 Dec(And, 3)(
-                    Dec(And, 1)(Dec(Not, 0)(RelVar("A", "x")), Dec(RelVar, 0)("B", "x")),
-                    Dec(And, 1)(Dec(RelVar, 0)("C", "x"), Dec(Not, 0)(RelVar("D", "x")))
+                    Dec(And, 1)(
+                        Dec(Not, 0)(RelVar("A", "x")), Dec(RelVar, 0)("B", "x")
+                    ),
+                    Dec(And, 1)(
+                        Dec(RelVar, 0)("C", "x"), Dec(Not, 0)(RelVar("D", "x"))
+                    ),
                 ),
                 Dec(And, 1)(
                     Dec(Or, 0)(Dec(Not, 0)(RelVar("A", "x")), Dec(RelVar, 0)("B", "x")),
-                    Dec(RelVar, 0)("C", "x")
+                    Dec(RelVar, 0)("C", "x"),
+                ),
+            ),
+        ),
+        (
+            make_ast("A(x) & B(x) | (C(x) | D(x) | E(x) & F(x))"),
+            Dec(Or, 2)(
+                Dec(And, 1)(Dec(RelVar, 0)("A", "x"), Dec(RelVar, 0)("B", "x")),
+                Dec(Or, 1)(
+                    Dec(Or, 0)(Dec(RelVar, 0)("C", "x"), Dec(RelVar, 0)("D", "x")),
+                    Dec(And, 1)(Dec(RelVar, 0)("E", "x"), Dec(RelVar, 0)("F", "x")),
                 )
             )
         ),
-    ]
+    ],
 )
 def test_annotate_ast_data(original_ast, annotated_ast):
     compare_annotations(annotateAstData(original_ast), annotated_ast)
 
 
 @pytest.mark.parametrize(
-    "original_ast, transformed_ast", 
+    "original_ast, transformed_ast",
     [
         (
             make_ast("A(x) | B(x) & C(x)"),
             make_ast("(A(x) | B(x)) & (A(x) | C(x))"),
-        )
-    ]
+        ),
+        (
+            make_ast("A(x) & B(x) | C(x)"),
+            make_ast("(A(x) | C(x)) & (B(x) | C(x))"),
+        ),
+        (
+            make_ast("A(x) & B(x) | C(x) & D(x)"),
+            make_ast("((A(x) | C(x)) & (A(x) | D(x))) & ((B(x) | C(x)) & (B(x) | D(x)))"),
+        ),
+        (
+            make_ast("A(x) | B(x) | C(x) & D(x)"),
+            make_ast("(A(x) | B(x) | C(x)) & (A(x) | B(x) | D(x))")
+        ),
+        (
+            make_ast("A(x) | B(x) | C(x) | D(x)"),
+            make_ast("A(x) | B(x) | C(x) | D(x)"),
+        ),
+    ],
 )
 def test_lower_disjunction(original_ast, transformed_ast):
     assert lowerDisjunction(annotateAstData(original_ast)) == transformed_ast
+
+
+@pytest.mark.parametrize(
+    "original_ast, transformed_ast",
+    [
+        (
+            make_ast("(A(x) | B(x) | C(x)) & (D(x) | E(x) | F(x))"),
+            make_ast("(A(x) | B(x) | C(x)) & (D(x) | E(x) | F(x))"),
+        ),
+        (
+            make_ast("(A(x) & (B(x) | C(x))) & ((D(x) | E(x)) & F(x))"),
+            make_ast("(A(x) & (B(x) | C(x))) & ((D(x) | E(x)) & F(x))"),
+        ),
+        (
+            make_ast("A(x) & B(x) | (C(x) | D(x) | E(x) & F(x))"),
+            make_ast(
+                """
+                (
+                    (A(x) | (C(x) | D(x) | E(x))) &
+                    (A(x) | (C(x) | D(x) | F(x)))
+                ) & (
+                    (B(x) | (C(x) | D(x) | E(x))) &
+                    (B(x) | (C(x) | D(x) | F(x)))
+                )
+                """
+            ),
+        ),
+        (
+            make_ast("A(x) & B(x) | (C(x) & D(x) | E(x) & F(x))"),
+            make_ast(
+                """
+                (
+                    (
+                        (A(x) | (C(x) | E(x))) &
+                        (A(x) | (C(x) | F(x)))
+                    ) & (
+                        (B(x) | (C(x) | E(x))) &
+                        (B(x) | (C(x) | F(x)))
+                    )
+                ) & (
+                    (
+                        (A(x) | (D(x) | E(x))) &
+                        (A(x) | (D(x) | F(x)))
+                    ) & (
+                        (B(x) | (D(x) | E(x))) &
+                        (B(x) | (D(x) | F(x)))
+                    )
+                )
+                """
+            ),
+        ),
+    ]
+)
+def test_conjunctive_normal_form(original_ast, transformed_ast):
+    assert conjunctiveNormalForm(annotateAstData(original_ast)) == transformed_ast

@@ -60,7 +60,7 @@ def lowerDisjunction(ast: DecoratedFormula) -> DecoratedFormula:
     Note that we use the number of conjunctions as a heuristic for which
     branch to lower the disjunction into. We lower into the branch with more
     conjunctions, since the other branch will be duplicated. In case of a
-    tie, we lower into the right branch.
+    tie, we lower into the left branch.
     """
     if ast.num_conjunctions == 0:
         return ast
@@ -73,7 +73,7 @@ def lowerDisjunction(ast: DecoratedFormula) -> DecoratedFormula:
     # Use number of conjunctions as a heuristic for which branch to lower into
     if left_is_conjunction and (
         not right_is_conjunction
-        or ast.left.num_conjunctions > ast.right.num_conjunctions
+        or ast.left.num_conjunctions >= ast.right.num_conjunctions
     ):
         # Lower into the left branch
         ast = BinaryConnective(
@@ -100,6 +100,8 @@ def lowerDisjunction(ast: DecoratedFormula) -> DecoratedFormula:
     ast.right.num_conjunctions = (
         ast.right.left.num_conjunctions + ast.right.right.num_conjunctions
     )
+    ast.num_conjunctions = ast.left.num_conjunctions + ast.right.num_conjunctions + 1
+    # Recursively lower disjunctions down subtrees
     ast.left = lowerDisjunction(ast.left)
     ast.right = lowerDisjunction(ast.right)
     return ast
@@ -114,6 +116,4 @@ def conjunctiveNormalForm(ast: DecoratedFormula) -> Formula:
             if op == Operator.OR:
                 # Lower the disjunction if necessary
                 ast = lowerDisjunction(ast)
-        case Relation():
-            pass
     return ast
