@@ -1,5 +1,6 @@
 """Simple recursive descent parser to generate an AST."""
 
+from functools import partial, reduce
 from .lexer import *
 from .normal_form import *
 from .parser_ast import *
@@ -12,6 +13,23 @@ def parse(lexer: Lexer) -> Formula:
         return parseFormula("begin", lexer)
     except StopIteration:
         raise FOLSyntaxException("Unexpected end of expression")
+
+
+def transform(ast: Formula, symbol_manager: SymbolManager) -> Formula:
+    """
+    Apply all necessary steps to convert an AST into implicitly-quantified CNF,
+    including skolemization and variable renaming.
+    """
+    transform_funcs = [
+        simplifyConnectives,
+        moveNegationsInward,
+        partial(standardizeVariables, symbol_manager=symbol_manager),
+        moveQuantifiersOutward,
+        partial(skolemize, symbol_manager=symbol_manager),
+        annotateAstData,
+        conjunctiveNormalForm,
+    ]
+    return reduce(lambda val, func: func(val), transform_funcs, ast)
 
 
 # Operator precedence (higher means higher precedence)

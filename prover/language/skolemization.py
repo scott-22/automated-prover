@@ -1,4 +1,4 @@
-"""Convert an AST into clauses by converting into prenex normal form and skolemizing."""
+"""Convert an AST into prenex normal form and apply skolemization."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
