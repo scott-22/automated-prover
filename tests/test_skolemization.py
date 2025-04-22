@@ -184,11 +184,29 @@ def test_check_asts_are_not_isomorphic(first_ast, second_ast, strict_funcs):
         ),
     ],
 )
-def test_standardize_variables(original_ast, symbol_manager):
+def test_standardize_variables_in_single_formula(original_ast, symbol_manager):
     original_ast_copy = copy.deepcopy(original_ast)
     standardized_ast = standardizeVariables(original_ast, symbol_manager)
     check_unique_var_names(standardized_ast)
     check_isomorphic(standardized_ast, original_ast_copy)
+
+
+@pytest.mark.parametrize(
+    "original_ast_sequence",
+    [
+        [
+            make_ast("forall x R(x)"),
+            make_ast("forall y (P(y) & R(x))"),
+            make_ast("exists x (P(x) & P(y))"),
+            make_ast("forall x R(x)"),
+        ],
+    ],
+)
+def test_standardize_variables_in_sequence(original_ast_sequence, symbol_manager):
+    standardized_ast_sequence = [
+        standardizeVariables(ast, symbol_manager) for ast in original_ast_sequence
+    ]
+    check_unique_var_names(*standardized_ast_sequence)
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,6 @@
 """Convert an AST into prenex normal form and apply skolemization."""
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from .lexer import Operator
 from .parser_ast import *
@@ -16,8 +16,8 @@ class SkolemizationException(Exception):
 class SymbolManager:
     """
     Singleton class to help manage generating unique names, used both for
-    standardizing variables within the same formula and for generating
-    function names during skolemization.
+    standardizing variable names and for generating function names during
+    skolemization.
 
     Note that uniqueness of generated names is only guaranteed if all
     variable standardization steps occur before skolemization, since
@@ -27,6 +27,8 @@ class SymbolManager:
     """
 
     def __init__(self):
+        # All unique variable names within a session
+        self.global_unique_vars: set[str] = set()
         # All unique function names within a session
         self.global_unique_funcs: set[str] = set()
         # Use a monotonic number for generating unique names
@@ -35,38 +37,44 @@ class SymbolManager:
     def registerFunc(self, name: str) -> None:
         self.global_unique_funcs.add(name)
 
-    def getSkolemFunc(self) -> str:
-        """Return a unique skolem function name."""
-        while (func := f"func_{self.numeric_id}") in self.global_unique_funcs:
+    def getSymbol(self, is_var: bool, prefix: str | None = None) -> str:
+        """Return a unique variable or skolem function."""
+        symbol_set = self.global_unique_vars if is_var else self.global_unique_funcs
+        if prefix is None:
+            prefix = "var_" if is_var else "func_"
+        while (symbol := f"{prefix}{self.numeric_id}") in symbol_set:
             self.numeric_id += 1
-        self.global_unique_funcs.add(func)
-        return func
+        symbol_set.add(symbol)
+        return symbol
 
     class VariableStandardizer:
         """
-        Helper class to standardize variables within a single formula.
+        Helper class to standardize variables within a formula. If
+        a variable is repeated within this formula or a previous one,
+        it is renamed.
+
         Since variable standardization happens before skolemization,
         the global_unique_funcs set is also passed in, and function
         names are registered during this step.
         """
 
-        def __init__(self, func_name_register: set[str]):
-            # Tracks all names seen so far
-            self.symbol_set: set[str] = set()
+        def __init__(
+            self,
+            var_name_register: set[str],
+            func_name_register: set[str],
+            get_symbol: Callable[[bool, str], str]
+        ):
+            # Tracks all unique variables seen so far
+            self.var_name_register: set[str] = var_name_register
             # Maps bound variables to their new name
             self.bound_symbol_table: dict[str, str] = {}
             # Maps free variables to their new name
             self.free_symbol_table: dict[str, str] = {}
-            # Use a monotonic number to append to IDs for generating unique names
-            self.numeric_id = 0
             # Track unique function symbols seen so far
             self.func_name_register = func_name_register
 
-        def getNewSymbol(self, name: str):
-            """Generate a new symbol based on the given name."""
-            while (new_symbol := f"{name}_{self.numeric_id}") in self.symbol_set:
-                self.numeric_id += 1
-            return new_symbol
+            # Closure to get new unique symbols
+            self.getSymbol = get_symbol
 
         def registerFunc(self, name: str):
             self.func_name_register.add(name)
@@ -84,8 +92,8 @@ class SymbolManager:
             the bound_symbol_table always points to the current mapped name.
             """
             original_var = self.bound_symbol_table.get(name)
-            new_var = self.getNewSymbol(name) if name in self.symbol_set else name
-            self.symbol_set.add(new_var)
+            new_var = self.getSymbol(True, name) if name in self.var_name_register else name
+            self.var_name_register.add(new_var)
             self.bound_symbol_table[name] = new_var
             yield new_var
             self.bound_symbol_table[name] = original_var
@@ -100,13 +108,17 @@ class SymbolManager:
             else:
                 if name in self.free_symbol_table:
                     return self.free_symbol_table[name]
-                new_var = self.getNewSymbol(name)
-                self.symbol_set.add(new_var)
+                new_var = self.getSymbol(True, name)
+                self.var_name_register.add(new_var)
                 self.free_symbol_table[name] = new_var
                 return new_var
 
     def standardize_variables(self) -> VariableStandardizer:
-        return self.VariableStandardizer(self.global_unique_funcs)
+        return self.VariableStandardizer(
+            self.global_unique_vars,
+            self.global_unique_funcs,
+            self.getSymbol
+        )
 
 
 def simplifyConnectives(ast: Formula) -> Formula:
@@ -291,7 +303,7 @@ def skolemize(ast: Formula, symbol_manager: SymbolManager) -> Formula:
     while isinstance(ast, Quantifier):
         if ast.name == Operator.EXISTS:
             # We replace the existentially-quantified variable with a skolem func
-            skolem_func_symbol = symbol_manager.getSkolemFunc()
+            skolem_func_symbol = symbol_manager.getSymbol(False)
             skolem_func = Function(skolem_func_symbol, var_list.copy())
             skolem_map[ast.var] = skolem_func
             var_list.append(skolem_func)

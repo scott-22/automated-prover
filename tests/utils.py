@@ -115,10 +115,11 @@ def check_isomorphic(x: Formula, y: Formula, strict_funcs: bool = True) -> None:
     check_isomorphic_formula(x, y)
 
 
-def check_unique_var_names(ast: Formula) -> None:
+def check_unique_var_names(*asts: list[Formula]) -> None:
     """
-    Check if an AST has all unique variable names. That is, no two bound variables
-    share a name, and no free variable has the same name as a bound one.
+    Check if one or more ASTs have all unique variable names. That is,
+    no two bound variables share a name, and no free variable has the
+    same name as a bound one.
     """
     # Currently bound variables
     currently_bound_vars: set[str] = set()
@@ -162,7 +163,8 @@ def check_unique_var_names(ast: Formula) -> None:
                 for arg in args:
                     check_unique_var_names_term(arg)
 
-    check_unique_var_names_formula(ast)
+    for ast in asts:
+        check_unique_var_names_formula(ast)
 
 
 def make_ast(fol: str) -> Formula:

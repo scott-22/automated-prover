@@ -6,7 +6,7 @@ from dataclasses import dataclass
 @dataclass
 class Term:
     """
-    High-level class representing a term, defined recursively as a bound variable,
+    Abstract class representing a term, defined recursively as a bound variable,
     a constant, or a function of terms
     """
 
@@ -44,7 +44,7 @@ class Function(Term):
 @dataclass
 class Formula:
     """
-    High-level class representing a formula, defined recursively as an atom (relation) or
+    Abstract class representing a formula, defined recursively as an atom (relation) or
     a logical expression composed of formulas
     """
 
