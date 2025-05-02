@@ -171,6 +171,10 @@ def make_ast(fol: str) -> Formula:
     return parse(Lexer(fol))
 
 
+def make_terms(fol: str) -> Term:
+    return parse(Lexer(f"R({fol})")).args
+
+
 # Shorten AST names
 
 Const = Constant

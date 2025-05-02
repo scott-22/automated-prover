@@ -73,10 +73,10 @@ def test_lexer(input_str, output_tokens):
     "input_str, output_ast",
     [
         (
-            "A(x, y) & B(Y, f(z, 0), y)",
+            "A(x, y) & B(Y, f(z, 0, f), y)",
             And(
                 RelVar("A", "x", "y"),
-                Rel("B", [Const("Y"), Func("f", [Var("z"), Const("0")]), Var("y")]),
+                Rel("B", [Const("Y"), Func("f", [Var("z"), Const("0"), Var("f")]), Var("y")]),
             ),
         ),
         (

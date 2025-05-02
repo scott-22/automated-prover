@@ -1,6 +1,7 @@
 """Define all AST nodes representing FOL language elements"""
 
 from dataclasses import dataclass
+from typing import Self
 
 
 @dataclass
@@ -12,6 +13,10 @@ class Term:
 
     name: str
 
+    def __contains__(self, var: Self) -> bool:
+        """Checks if a term contains a variable or constant."""
+        raise NotImplementedError()
+
 
 @dataclass
 class Constant(Term):
@@ -21,7 +26,8 @@ class Constant(Term):
     must begin with a lowercase letter
     """
 
-    pass
+    def __contains__(self, var: Term) -> bool:
+        return self == var
 
 
 @dataclass
@@ -31,7 +37,8 @@ class Variable(Term):
     though they're not technically terms, for easier parsing
     """
 
-    pass
+    def __contains__(self, var: Term) -> bool:
+        return self == var
 
 
 @dataclass
@@ -39,6 +46,9 @@ class Function(Term):
     """Function applied to a list of argument terms"""
 
     args: list[Term]
+
+    def __contains__(self, var: Term) -> bool:
+        return any(var in arg for arg in self.args)
 
 
 @dataclass
