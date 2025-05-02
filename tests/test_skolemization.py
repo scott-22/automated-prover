@@ -265,6 +265,12 @@ def test_move_quantifiers_outwards(original_ast, transformed_ast):
     "original_ast, transformed_ast",
     [
         (
+            make_ast("exists x A(x)"),
+            # Functions of arity 0 need to be constants in user-written FOL, but is still a
+            # valid output during skolemization 
+            Rel("A", [Func("f", [])]),
+        ),
+        (
             make_ast(
                 """
                 forall x exists y forall z exists w (

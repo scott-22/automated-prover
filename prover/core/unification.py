@@ -5,16 +5,20 @@ from typing import Self
 from prover.language.parser_ast import *
 
 
-@dataclass
+@dataclass(frozen=True)
 class Literal:
     """
     An atomic formula or its negation. A formula is atomic iff it is a relation.
-    Note that literals may share term objects, so terms should be treated as immutable.
+    Note that literals may share term objects and are considered hashable, so terms
+    should be treated as immutable.
     """
 
     id: str  # Name of the relation
     negated: bool  # Whether the atom is negated
     terms: list[Term]  # Arguments of the relation
+
+    def __neg__(self) -> Self:
+        return Literal(self.id, not self.negated, self.terms)
 
 
 class Unifier:
