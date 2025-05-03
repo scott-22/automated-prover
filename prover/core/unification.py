@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Self
+from prover.language.lexer import Operator
 from prover.language.parser_ast import *
 
 
@@ -19,6 +20,9 @@ class Literal:
 
     def __neg__(self) -> Self:
         return Literal(self.id, not self.negated, self.terms)
+    
+    def __repr__(self) -> str:
+        return f"{Operator.NOT if self.negated else ""}{self.id}({", ".join(self.terms)})"
 
 
 class Unifier:

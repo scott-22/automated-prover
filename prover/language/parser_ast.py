@@ -29,6 +29,9 @@ class Constant(Term):
     def __contains__(self, var: Term) -> bool:
         return self == var
 
+    def __repr__(self) -> str:
+        return self.name
+
 
 @dataclass
 class Variable(Term):
@@ -40,6 +43,9 @@ class Variable(Term):
     def __contains__(self, var: Term) -> bool:
         return self == var
 
+    def __repr__(self) -> str:
+        return self.name
+
 
 @dataclass
 class Function(Term):
@@ -49,6 +55,9 @@ class Function(Term):
 
     def __contains__(self, var: Term) -> bool:
         return any(var in arg for arg in self.args)
+
+    def __repr__(self) -> str:
+        return f"{self.name}({", ".join(self.args)})"
 
 
 @dataclass
