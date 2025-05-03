@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 
-# Types of tokens representing basic FOL language
 class TokenType(StrEnum):
+    """Types of tokens representing basic FOL language."""
+
     OPERATOR = "operator"  # Logical operator
     IDENTIFIER = "identifier"  # Name of a function, relation, or bound/free variable
     BRACKET = "bracket"  # Open or close bracket
@@ -16,8 +17,9 @@ class TokenType(StrEnum):
         return f"'{self.value}'"
 
 
-# Operators supported by FOL language
 class Operator(StrEnum):
+    """Operators supported by FOL language."""
+
     NOT = "!"
     FORALL = "forall"
     EXISTS = "exists"

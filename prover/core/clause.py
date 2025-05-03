@@ -46,19 +46,19 @@ class Clause:
         return str(self.literals)
 
 
-def extract_clauses(ast: Formula) -> list[Clause]:
+def extractClauses(ast: Formula) -> list[Clause]:
     """Given a formula in CNF, return a list of all extracted clauses."""
     clauses: list[Clause] = []
 
-    def extract_literals_from_disjunctive_subtree(
+    def extractLiteralsFromDisjunctiveSubtree(
             ast: Formula,
             lit_set: set[Literal]
     ) -> None:
         """Recursive helper to add all literals from a disjunctive clause."""
         match ast:
             case BinaryConnective(Operator.OR, left, right):
-                extract_literals_from_disjunctive_subtree(left, lit_set)
-                extract_literals_from_disjunctive_subtree(right, lit_set)
+                extractLiteralsFromDisjunctiveSubtree(left, lit_set)
+                extractLiteralsFromDisjunctiveSubtree(right, lit_set)
             case UnaryConnective(Operator.NOT, Relation(name, args)):
                 lit_set.add(Literal(name, True, args))
             case Relation(name, args):
@@ -69,17 +69,17 @@ def extract_clauses(ast: Formula) -> list[Clause]:
                     f"found {ast} when a disjunctive subtree was expected"
                 )
 
-    def extract_clause_from_conjunctive_subtree(ast: Formula) -> None:
+    def extractClauseFromConjunctiveSubtree(ast: Formula) -> None:
         nonlocal clauses
         """Recursive helper to extract clauses from CNF."""
         match ast:
             case BinaryConnective(Operator.AND, left, right):
-                extract_clause_from_conjunctive_subtree(left)
-                extract_clause_from_conjunctive_subtree(right)
+                extractClauseFromConjunctiveSubtree(left)
+                extractClauseFromConjunctiveSubtree(right)
             case _:
                 lit_set: set[Literal] = set()
-                extract_literals_from_disjunctive_subtree(ast, lit_set)
+                extractLiteralsFromDisjunctiveSubtree(ast, lit_set)
                 clauses.append(Clause(lit_set))
 
-    extract_clause_from_conjunctive_subtree(ast)
+    extractClauseFromConjunctiveSubtree(ast)
     return clauses
