@@ -1,9 +1,9 @@
 """Data structure for clauses."""
 
 from typing import Iterator, Self
-from prover.language.lexer import Operator
-from prover.language.normal_form import NormalFormException
-from prover.language.parser_ast import *
+from ..language.lexer import Operator
+from ..language.normal_form import NormalFormException
+from ..language.parser_ast import *
 from .unification import Literal, Unifier
 
 
@@ -43,7 +43,7 @@ class Clause:
     def __repr__(self) -> str:
         if len(self) == 0:
             return "⊥"
-        return str(self.literals)
+        return ", ".join(map(str, self.literals))
 
 
 def extractClauses(ast: Formula) -> list[Clause]:
@@ -60,9 +60,9 @@ def extractClauses(ast: Formula) -> list[Clause]:
                 extractLiteralsFromDisjunctiveSubtree(left, lit_set)
                 extractLiteralsFromDisjunctiveSubtree(right, lit_set)
             case UnaryConnective(Operator.NOT, Relation(name, args)):
-                lit_set.add(Literal(name, True, args))
+                lit_set.add(Literal(name, True, tuple(args)))
             case Relation(name, args):
-                lit_set.add(Literal(name, False, args))
+                lit_set.add(Literal(name, False, tuple(args)))
             case _:
                 raise NormalFormException(
                     "Given AST was not converted into CNF properly, "

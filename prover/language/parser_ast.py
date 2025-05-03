@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Self
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Term:
     """
     Abstract class representing a term, defined recursively as a bound variable,
@@ -18,7 +18,7 @@ class Term:
         raise NotImplementedError()
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Constant(Term):
     """
     Constant (as defined by a specific theory). Note that constants are differentiated
@@ -33,7 +33,7 @@ class Constant(Term):
         return self.name
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Variable(Term):
     """
     Free or bound variable. Note that we include bound variables here too even
@@ -56,8 +56,11 @@ class Function(Term):
     def __contains__(self, var: Term) -> bool:
         return any(var in arg for arg in self.args)
 
+    def __hash__(self) -> int:
+        return hash((self.name, tuple(self.args)))
+
     def __repr__(self) -> str:
-        return f"{self.name}({", ".join(self.args)})"
+        return f"{self.name}({", ".join(map(str, self.args))})"
 
 
 @dataclass

@@ -2,8 +2,8 @@
 
 from dataclasses import dataclass
 from typing import Self
-from prover.language.lexer import Operator
-from prover.language.parser_ast import *
+from ..language.lexer import Operator
+from ..language.parser_ast import *
 
 
 @dataclass(frozen=True)
@@ -16,13 +16,13 @@ class Literal:
 
     id: str  # Name of the relation
     negated: bool  # Whether the atom is negated
-    terms: list[Term]  # Arguments of the relation
+    terms: tuple[Term]  # Arguments of the relation
 
     def __neg__(self) -> Self:
         return Literal(self.id, not self.negated, self.terms)
     
     def __repr__(self) -> str:
-        return f"{Operator.NOT if self.negated else ""}{self.id}({", ".join(self.terms)})"
+        return f"{Operator.NOT if self.negated else ""}{self.id}({", ".join(map(str, self.terms))})"
 
 
 class Unifier:
@@ -124,4 +124,4 @@ class Unifier:
 
     def __call__(self, lit: Literal) -> Self:
         """Apply this unifier to a literal."""
-        return Literal(lit.id, lit.negated, list(map(self.replaceVars, lit.terms)))
+        return Literal(lit.id, lit.negated, tuple(map(self.replaceVars, lit.terms)))

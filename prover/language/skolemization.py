@@ -104,11 +104,16 @@ class SymbolManager:
             # might exist in bound_symbol_table but still be free (if it is
             # mapped to None, then it has already been popped off the stack).
             if (bound_var := self.bound_symbol_table.get(name)) is not None:
+                # We have a bound variable, so we return its assigned symbol
                 return bound_var
             else:
+                # We have a free variable
                 if name in self.free_symbol_table:
                     return self.free_symbol_table[name]
-                new_var = self.getSymbol(True, name)
+                if name in self.var_name_register:
+                    new_var = self.getSymbol(True, name)
+                else:
+                    new_var = name
                 self.var_name_register.add(new_var)
                 self.free_symbol_table[name] = new_var
                 return new_var
