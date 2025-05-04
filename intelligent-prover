@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+from prover.assistant.session import ProofClause, ProofSession
+
+PROOF_SESSION = ProofSession()
+
+HELP_TEXT = """--- Intelligent Prover ---
+This is an interactive proof session.
+
+Commands:
+  axiom <FOL formula>        Register a formula as an axiom
+  theorem <FOL formula>      Attempt to prove a theorem
+  show <option>              Option should be "axioms" or "theorems"
+  exit                       Terminate the proof session
+"""
+
+print(HELP_TEXT)
+
+while True:
+    command = input(">>> ").strip().split(None, 1)
+    if command[0] == "axiom":
+        # Register a new axiom
+        PROOF_SESSION.addAxiom(command[1])
+        print("Axiom added.")
+    elif command[0] == "theorem":
+        # Attempt to prove a theorem
+        proof_result = PROOF_SESSION.proveTheorem(command[1])
+        if proof_result is not None:
+            print("Proof successful:")
+            for clause in proof_result:
+                print(clause)
+        else:
+            print("Proof failed.")
+    elif command[0] == "show":
+        # Show axioms or theorems
+        if command[1] in ("axioms", "theorems"):
+            formulas = (
+                PROOF_SESSION.axioms if command[1] == "axioms"
+                else PROOF_SESSION.theorems
+            )
+            if len(PROOF_SESSION.axioms) == 0:
+                print(f"No {command[1]} yet.")
+            else:
+                for idx, formula in enumerate(formulas):
+                    print(f"{idx}.", formula)
+        else:
+            print(f"\"{command[1]}\" is not a valid option.")
+    elif command[0] == "exit":
+        break
+    else:
+        print("Unrecognized command.")
+    print()  # Insert a newline

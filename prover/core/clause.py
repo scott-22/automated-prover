@@ -1,4 +1,4 @@
-"""Data structure for clauses."""
+"""Data structure for clauses, and extraction of clauses from CNF."""
 
 from typing import Iterator, Self
 from ..language.lexer import Operator

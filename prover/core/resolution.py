@@ -78,10 +78,10 @@ def extractProof(
     while len(included_clauses) > 0:
         clause = included_clauses.popleft()
         if clause.resolvents is not None:
-            for index in clause.resolvents:
-                if index not in included_indices:
-                    included_indices.add(index)
-                    included_clauses.append(clauses[index])
+            for idx in clause.resolvents:
+                if idx not in included_indices:
+                    included_indices.add(idx)
+                    included_clauses.append(clauses[idx])
 
     proof: list[ProofClause] = []
     new_index_map: dict[int, int] = {}
@@ -89,10 +89,10 @@ def extractProof(
     # before conclusions. Note that the sort is guaranteed to be stable, so the
     # resolved clauses remain in dependency order. Only premises and conclusions
     # are rearranged, which is ok since they do not have dependencies.
-    for index in sorted(
+    for idx in sorted(
         included_indices, key=lambda idx: (clauses[idx].clause_type, clauses[idx].index)
     ):
-        clause = clauses[index]
+        clause = clauses[idx]
         new_index_map[clause.index] = len(proof)
         clause.index = len(proof)
         if clause.resolvents is not None:
