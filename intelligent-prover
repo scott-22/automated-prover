@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
 
-from prover.assistant.session import ProofClause, ProofSession
+from prover.assistant.session import ProofSession
 
 PROOF_SESSION = ProofSession()
 
 HELP_TEXT = """--- Intelligent Prover ---
 This is an interactive proof session.
 
+You can define axioms and prove theorems using the commands below. If you
+would like to use smart premise selection, ensure that you provide a non-
+empty description for your theorem. Otherwise, you may leave the
+description blank.
+
 Commands:
   axiom <FOL formula>                          Register a formula as an axiom
-  theorem <FOL formula>                        Attempt to prove a theorem
+  theorem <FOL formula>                        Attempt to prove a theorem, and optionally provide a description
   describe <option> <index> <description>      Add description to the axiom/theorem at the given index ("axiom", "theorem")
   show <option> [index]                        Show all axioms/theorems, or the one at the given index ("axiom", "theorem")
   exit                                         Terminate the proof session
-  """
+"""
 
 print(HELP_TEXT, end="")
 
@@ -38,8 +43,9 @@ while True:
         if len(command) == 1:
             print("No theorem was provided.")
             continue
+        description = input("Enter description (Optional): ")
         try:
-            proof_result = PROOF_SESSION.proveTheorem(command[1])
+            proof_result = PROOF_SESSION.proveTheorem(command[1], description)
             if proof_result is not None:
                 print("Proof successful:")
                 for clause in proof_result:
@@ -64,6 +70,7 @@ while True:
             try:
                 formula = formulas[int(options[1])]
                 formula.description = options[2]
+                print("Description added.")
             except:
                 print(f"Invalid index \"{options[1]}\" provided.")
         else:
