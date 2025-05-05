@@ -21,6 +21,14 @@ class ClauseType(Enum):
 
 
 @dataclass
+class ClauseSource:
+    """The originating source of a premise clause (the index of its axiom or theorem)."""
+
+    is_axiom: bool  # Whether it comes from an axiom or theorem
+    index: int  # The index of its originating axiom of theorem
+
+
+@dataclass
 class ProofClause:
     """Class that holds a clause and metadata to reconstruct the proof."""
 
@@ -28,13 +36,17 @@ class ProofClause:
     index: int | None  # Index corresponding to current clause, or None if not assigned yet
     resolvents: tuple[int, int] | None  # Indices corresponding to resolvents, if applicable
     clause_type: ClauseType = ClauseType.OTHER
+    clause_source: ClauseSource | None = None  # Is not None iff clause is from a premise
 
     def __repr__(self) -> str:
         suffix = ""
         if self.resolvents is not None:
             suffix = f" (Resolve {", ".join(map(str, self.resolvents))})"
         elif self.clause_type == ClauseType.PREMISE:
-            suffix = " (Premise)"
+            suffix = (
+                f" (Premise, {"Axiom" if self.clause_source.is_axiom else "Theorem"}"
+                f" {self.clause_source.index})"
+            )
         elif self.clause_type == ClauseType.CONCLUSION:
             suffix = " (Conclusion)"
         return f"{self.index}. {self.clause}" + suffix
@@ -117,23 +129,25 @@ def extractProof(
 
 
 def resolution(
-    premises: Iterable[Clause], conclusions: Iterable[Clause]
+    premises: Iterable[tuple[ClauseSource, Clause]], conclusions: Iterable[Clause]
 ) -> list[ProofClause] | None:
     """
     Perform resolution on the premise clauses, and the clauses obtained from the negation
-    of the conclusion. Returns the proof if one was found, or None if resolution terminates
-    without proof.
+    of the conclusion. Returns the proof if one was found, or None if resolution
+    terminates without proof. Premise clauses should be passed in as a 2-tuple containing
+    its source and the clause itself.
 
     Note that first-order logic is complete, so if a proof exists, it will be found (in
-    theory, subject to resource constraints of course). However, FOL is undecidable, so this
-    function is not guaranteed to terminate if no proof exists.
+    theory, subject to resource constraints of course). However, FOL is undecidable, so
+    this function is not guaranteed to terminate if no proof exists.
     """
     clauses = []
     next_clauses = deque(
         ProofClause(clause, None, None, ClauseType.CONCLUSION) for clause in conclusions
     )
     next_clauses.extend(
-        ProofClause(clause, None, None, ClauseType.PREMISE) for clause in premises
+        ProofClause(clause, None, None, ClauseType.PREMISE, source)
+        for source, clause in premises
     )
     proof_result = resolveAllClauses(clauses, next_clauses)
     if proof_result is not None:

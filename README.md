@@ -10,43 +10,57 @@ In theory, any theorem should be provable from just the axioms. However, includi
 Note that FOL is complete but undecidable. This means that valid arguments should always be provable in theory (subject to resource constraints). However, the prover cannot always determine something to be unprovable, and might never terminate.
 
 ## Usage
-To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). Below is an example proof session. Please note that the first time the prover runs, it may take a long time to start up since it needs to download the encoder model.
+To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). There may be a delay the first time the prover runs, as it needs to download the encoder model.
 
-For more details on the FOL syntax used by this prover, see the following section.
+Below is an example proof session. For more details on the FOL syntax used by this prover, see the [following section](#fol-syntax).
 
 ```
 % ./intelligent-prover
 --- Intelligent Prover ---
 This is an interactive proof session.
 
+You can define axioms and prove theorems using the commands below. If you
+would like to use smart premise selection, ensure that you provide a non-
+empty description for your theorem. Otherwise, you may leave the
+description blank.
+
 Commands:
-  axiom <FOL formula>        Register a formula as an axiom
-  theorem <FOL formula>      Attempt to prove a theorem
-  show <option>              Option should be "axioms" or "theorems"
-  exit                       Terminate the proof session
+  axiom <FOL formula>                          Register a formula as an axiom
+  theorem <FOL formula>                        Attempt to prove a theorem, and optionally provide a description
+  describe <option> <index> <description>      Add description to the axiom/theorem at the given index ("axiom", "theorem")
+  show <option> [index]                        Show all axioms/theorems, or the one at the given index ("axiom", "theorem")
+  verbose                                      Toggle verbosity (whether to show details during premise selection)
+  exit                                         Terminate the proof session
 
->>> axiom forall animal (Cat(animal) -> Mammal(animal))
+>>> axiom forall x !(Even(x) & Odd(x))
+Enter description (Optional): No integer is both even and odd
 Axiom added.
 
->>> axiom exists animal (Pet(animal) & !Mammal(animal))
+>>> axiom forall x ((Even(x) -> Odd(addOne(x))) & (Odd(x) -> Even(addOne(x))))
+Enter description (Optional): Adding one to an even integer results in an odd integer, and vice versa
 Axiom added.
 
->>> theorem exists animal (Pet(animal) & !Cat(animal))
+>>> axiom Integer(0) & Even(0)
+Enter description (Optional): Zero is an integer, and it is even
+Axiom added.
+
+>>> theorem !Even(addOne(0))
+Enter description (Optional): One is not an even integer
 Proof successful:
-0. Mammal(animal), !Cat(animal) (Premise)
-1. Pet(func_0()) (Premise)
-2. !Mammal(func_0()) (Premise)
-3. Cat(animal12), !Pet(animal12) (Conclusion)
-4. Cat(func_0()) (Resolve 1, 3)
-5. !Cat(func_0()) (Resolve 2, 0)
+0. !Odd(x), !Even(x) (Premise, Axiom 0)
+1. !Even(x0), Odd(addOne(x0)) (Premise, Axiom 1)
+2. Even(0) (Premise, Axiom 2)
+3. Even(addOne(0)) (Conclusion)
+4. !Odd(addOne(0)) (Resolve 0, 3)
+5. Odd(addOne(0)) (Resolve 2, 1)
 6. ⊥ (Resolve 5, 4)
 
->>> show axiom
-0. forall animal (Cat(animal) -> Mammal(animal))
-1. exists animal (Pet(animal) & !Mammal(animal))
-
->>> show theorem
-0. exists animal (Pet(animal) & !Cat(animal))
+>>> theorem !forall x Even(x)
+Enter description (Optional): Not all integers are even
+Proof successful:
+0. !Even(addOne(0)) (Premise, Theorem 0)
+1. Even(x1) (Conclusion)
+2. ⊥ (Resolve 0, 1)
 
 >>> exit
 ```
