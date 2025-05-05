@@ -1,11 +1,18 @@
-# Automated Theorem Prover
+# Intelligent Prover
 
-This is an automated theorem prover supporting first-order logic (FOL). Additional features are currently in progress, including support for equality and induction schemas, as well as smart premise selection. Given arguments and a conclusion, it uses a resolution procedure to determine entailment.
+This is an automated theorem prover supporting first-order logic (FOL), with smart premise selection. Given a theorem, it will try to find a proof based on the axioms and theorems that it already knows. If a proof is found, then the theorem is added to the knowledge base and can be used to help prove other theorems. Additional features are currently in progress, including support for equality and induction schemas, and improvements to premise selection.
+
+When attempting to prove a theorem, this prover will select premises as follows:
+1. Include all known axioms
+1. Include a relevant subset of previously proven theorems as lemmas
+In theory, any theorem should be provable from just the axioms. However, including certain lemmas may cut down the search tree and speed up the process. For technical details, see the [Premise Selection](#premise-selection) section below.
 
 Note that FOL is complete but undecidable. This means that valid arguments should always be provable in theory (subject to resource constraints). However, the prover cannot always determine something to be unprovable, and might never terminate.
 
 ## Usage
-To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). Below is an example proof session. For more details on the FOL syntax, see the following section.
+To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). Below is an example proof session. Please note that the first time the prover runs, it may take a long time to start up since it needs to download the encoder model.
+
+For more details on the FOL syntax used by this prover, see the following section.
 
 ```
 % ./intelligent-prover
@@ -62,6 +69,13 @@ Formulas:
   A(x) -> B(x)         Implication
   A(x) <-> B(x)        Biconditional
 ```
+
+## Premise Selection
+Selecting the right premises can speed up a proof, but selecting irrelevant ones can slow it down. This prover currently uses a semantic approach as a selection heuristic.
+
+To determine which lemmas (previously proven theorems) are relevant to a given theorem, the prover relies on user-provided natural language descriptions. It will compare the description of the theorem against the descriptions of all previously proven theorems, and select lemmas that are semantically similar. That is, it choose lemmas that involve or describe similar ideas.
+
+In order to implement the semantic premise selection, it computes a similarity score between the sentence embeddings of these natural language descriptions, and chooses lemmas with a sufficiently high similarity. Currently, the prover uses a Hugging Face model as the sentence encoder, and calculates cosine similarity as its metric.
 
 ## Development
 
