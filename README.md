@@ -5,12 +5,13 @@ This is an automated theorem prover supporting first-order logic (FOL), with sma
 When attempting to prove a theorem, this prover will select premises as follows:
 1. Include all known axioms
 1. Include a relevant subset of previously proven theorems as lemmas
+
 In theory, any theorem should be provable from just the axioms. However, including certain lemmas may cut down the search tree and speed up the process. For technical details, see the [Premise Selection](#premise-selection) section below.
 
 Note that FOL is complete but undecidable. This means that valid arguments should always be provable in theory (subject to resource constraints). However, the prover cannot always determine something to be unprovable, and might never terminate.
 
 ## Usage
-To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). There may be a delay the first time the prover runs, as it needs to download the encoder model.
+To begin a proof session, run `intelligent-prover`. Ensure it has executable permissions (i.e, `chmod +x intelligent-prover`). There may be a delay the first time the prover runs, as it needs to download the sentence encoder model.
 
 Below is an example proof session. For more details on the FOL syntax used by this prover, see the [following section](#fol-syntax).
 
