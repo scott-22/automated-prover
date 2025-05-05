@@ -80,6 +80,26 @@ def symbol_manager():
             "exists y R(y)",
             True,  # Both quantifiers
         ),
+        (
+            [],
+            "forall x (R(x) | !R(x))",
+            True,  # Tautology
+        ),
+        (
+            [],
+            "R(0)",
+            False,
+        ),
+        (
+            ["exists x R(x)"],
+            "R(0)",
+            False,
+        ),
+        (
+            ["forall x (A(x) -> B(x))", "B(u)"],
+            "A(u)",
+            False,
+        ),
     ]
 )
 def test_resolution(premises, conclusion, valid, symbol_manager):

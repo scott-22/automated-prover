@@ -128,11 +128,11 @@ def resolution(
     theory, subject to resource constraints of course). However, FOL is undecidable, so this
     function is not guaranteed to terminate if no proof exists.
     """
-    clauses = [
-        ProofClause(clause, idx, None, ClauseType.CONCLUSION)
-        for idx, clause in enumerate(conclusions)
-    ]
+    clauses = []
     next_clauses = deque(
+        ProofClause(clause, None, None, ClauseType.CONCLUSION) for clause in conclusions
+    )
+    next_clauses.extend(
         ProofClause(clause, None, None, ClauseType.PREMISE) for clause in premises
     )
     proof_result = resolveAllClauses(clauses, next_clauses)
