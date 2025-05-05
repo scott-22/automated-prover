@@ -1,9 +1,27 @@
 """A proof session to keep track of axioms and proved theorems."""
 
+from dataclasses import dataclass
 from ..core.clause import extractClauses, Clause
 from ..core.resolution import resolution, ProofClause
 from ..language.lexer import Lexer, Operator
 from ..language.parser import parse, transform, SymbolManager, UnaryConnective
+
+
+@dataclass
+class Theorem:
+    """
+    An axiom or theorem used during the proof session. We cache its associated clauses
+    and store semantic metadata, which is used during premise selection.
+    """
+
+    fol: str  # String representation as a FOL formula
+    clauses: list[Clause]  # Clauses extracted from the theorem
+    description: str = ""  # Semantic description of the theorem
+
+    def __repr__(self) -> str:
+        if len(self.description) == 0:
+            return self.fol
+        return self.fol + "\n" + self.description
 
 
 class ProofSession:
@@ -14,19 +32,22 @@ class ProofSession:
     
     def __init__(self):
         self.symbol_manager = SymbolManager()
-        self.axioms: dict[str, list[Clause]] = {}
-        self.theorems: dict[str, list[Clause]] = {}
+        self.axioms: list[Theorem] = []
+        self.theorems: list[Theorem] = []
 
     def addAxiom(self, axiom: str) -> None:
         """Add a user-supplied axiom."""
-        self.axioms[axiom] = extractClauses(
-            transform(parse(Lexer(axiom)), self.symbol_manager)
+        self.axioms.append(
+            Theorem(
+                axiom,
+                extractClauses(transform(parse(Lexer(axiom)), self.symbol_manager)),
+            )
         )
     
     def getPremises(self, theorem: str) -> list[Clause]:
         """Get the premises used to prove a given theorem."""
         # TODO: Add heuristics based on theorem embeddings
-        return sum(self.axioms.values(), [])
+        return sum(map(lambda theorem: theorem.clauses, self.axioms), [])
     
     def proveTheorem(self, theorem: str) -> list[ProofClause] | None:
         """
@@ -45,7 +66,10 @@ class ProofSession:
         )
         proof_result = resolution(self.getPremises(theorem), conclusion_clauses)
         if proof_result is not None:
-            self.theorems[theorem] = extractClauses(
-                transform(conclusion_ast, self.symbol_manager)
+            self.theorems.append(
+                Theorem(
+                    theorem,
+                    extractClauses(transform(conclusion_ast, self.symbol_manager))
+                )
             )
         return proof_result

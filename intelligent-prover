@@ -8,45 +8,91 @@ HELP_TEXT = """--- Intelligent Prover ---
 This is an interactive proof session.
 
 Commands:
-  axiom <FOL formula>        Register a formula as an axiom
-  theorem <FOL formula>      Attempt to prove a theorem
-  show <option>              Option should be "axioms" or "theorems"
-  exit                       Terminate the proof session
-"""
+  axiom <FOL formula>                          Register a formula as an axiom
+  theorem <FOL formula>                        Attempt to prove a theorem
+  describe <option> <index> <description>      Add description to the axiom/theorem at the given index ("axiom", "theorem")
+  show <option> [index]                        Show all axioms/theorems, or the one at the given index ("axiom", "theorem")
+  exit                                         Terminate the proof session
+  """
 
-print(HELP_TEXT)
+print(HELP_TEXT, end="")
 
 while True:
+    print()  # Insert a newline
     command = input(">>> ").strip().split(None, 1)
+    if len(command) == 0:
+        continue
+    
     if command[0] == "axiom":
         # Register a new axiom
-        PROOF_SESSION.addAxiom(command[1])
-        print("Axiom added.")
+        if len(command) == 1:
+            print("No axiom was provided.")
+            continue
+        try:
+            PROOF_SESSION.addAxiom(command[1])
+            print("Axiom added.")
+        except Exception as exc:
+            print(exc)
     elif command[0] == "theorem":
         # Attempt to prove a theorem
-        proof_result = PROOF_SESSION.proveTheorem(command[1])
-        if proof_result is not None:
-            print("Proof successful:")
-            for clause in proof_result:
-                print(clause)
-        else:
-            print("Proof failed.")
-    elif command[0] == "show":
-        # Show axioms or theorems
-        if command[1] in ("axioms", "theorems"):
+        if len(command) == 1:
+            print("No theorem was provided.")
+            continue
+        try:
+            proof_result = PROOF_SESSION.proveTheorem(command[1])
+            if proof_result is not None:
+                print("Proof successful:")
+                for clause in proof_result:
+                    print(clause)
+            else:
+                print("Proof failed.")
+        except Exception as exc:
+            print(exc)
+    elif command[0] == "describe":
+        # Add description to an axiom/theorem
+        if len(command) == 1:
+            print("No options provided.")
+            continue
+        options = command[1].split(None, 2)
+        if len(options) != 3:
+            print("Invalid options.")
+        if options[0] in ("axiom", "theorem"):
             formulas = (
-                PROOF_SESSION.axioms if command[1] == "axioms"
+                PROOF_SESSION.axioms if options[0] == "axiom"
                 else PROOF_SESSION.theorems
             )
-            if len(PROOF_SESSION.axioms) == 0:
-                print(f"No {command[1]} yet.")
-            else:
-                for idx, formula in enumerate(formulas):
-                    print(f"{idx}.", formula)
+            try:
+                formula = formulas[int(options[1])]
+                formula.description = options[2]
+            except:
+                print(f"Invalid index \"{options[1]}\" provided.")
         else:
-            print(f"\"{command[1]}\" is not a valid option.")
+            print(f"\"{options[0]}\" is not a valid option.")
+    elif command[0] == "show":
+        # Show axioms or theorems
+        if len(command) == 1:
+            print("No options provided.")
+            continue
+        options = command[1].split(None, 1)
+        if options[0] in ("axiom", "theorem"):
+            formulas = (
+                PROOF_SESSION.axioms if options[0] == "axiom"
+                else PROOF_SESSION.theorems
+            )
+            if len(formulas) == 0:
+                print(f"No {options[0]} yet.")
+            else:
+                if len(options) > 1:
+                    try:
+                        print(formulas[int(options[1])])
+                    except:
+                        print(f"Invalid index \"{options[1]}\" provided.")
+                else:
+                    for idx, formula in enumerate(formulas):
+                        print(f"{idx}.", formula)
+        else:
+            print(f"\"{options[0]}\" is not a valid option.")
     elif command[0] == "exit":
         break
     else:
         print("Unrecognized command.")
-    print()  # Insert a newline

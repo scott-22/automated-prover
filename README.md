@@ -26,7 +26,7 @@ Axiom added.
 
 >>> theorem exists animal (Pet(animal) & !Cat(animal))
 Proof successful:
-0. !Cat(animal), Mammal(animal) (Premise)
+0. Mammal(animal), !Cat(animal) (Premise)
 1. Pet(func_0()) (Premise)
 2. !Mammal(func_0()) (Premise)
 3. Cat(animal12), !Pet(animal12) (Conclusion)
@@ -34,11 +34,11 @@ Proof successful:
 5. !Cat(func_0()) (Resolve 2, 0)
 6. ⊥ (Resolve 5, 4)
 
->>> show axioms
+>>> show axiom
 0. forall animal (Cat(animal) -> Mammal(animal))
 1. exists animal (Pet(animal) & !Mammal(animal))
 
->>> show theorems
+>>> show theorem
 0. exists animal (Pet(animal) & !Cat(animal))
 
 >>> exit
